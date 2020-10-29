@@ -1,0 +1,12 @@
+version: '3'
+services:
+  frontend_tls_srv:
+    build: ./frontend_tls_srv
+    image: 0891860/cloud_microservs:frontend_tls_srv
+    ports: 
+      - "8082:8082"
+    depends_on:
+      - hello_world_service
+  hello_world_service:
+    build: ./hello_world_service
+    image: 0891860/cloud_microservs:hello_world_service
