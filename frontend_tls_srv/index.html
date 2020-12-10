@@ -4,9 +4,10 @@
      <meta charset="utf-8">
      <title> Cloudtest-Website </title>
      <link rel="icon" type="image/png" href="bsi_favicon.png">
-  </head>
+</head>
 
   <body>
+
     <img src="bsi_icon.png" alt="BSI Icon">
     <div style="text-indent:400px;"> <h1> BSI Cloud Testing. </h1></div>
     <div style="text-indent:350px;"> <p> Hallo hier auf unserer test-Website zum Thema Cloud-Computing.</p></div>
@@ -14,18 +15,29 @@
     
     <div style="text-indent:300px;"> 
 	<form method="post" enctype="multipart/form-data">
-		<label> Wählen Sie jetzt bitte eine Text-Datei wie zB *.c, *.txt, *.html usw. für den Upload aus. (max. 1kB)
+		<label> Wählen Sie jetzt bitte eine Text-Datei wie zB *.c, *.txt, *.html usw. für den Upload aus. (max. 100kB)
 		   <pre><input name="datei" type="file" size="500000" accept="text/*"></pre>
 	     	</label>
+
+		<br>
+    
+	        <div style="text-indent:350px;"> <p>Soll die Datei verschlüsselt in der Cloud abgelegt werden?<p> </div>
+	        <div style="text-indent:350px;"> <input type="radio" id="sxcrxt" name="sxcrxt" value="1"> <label for="sxcrxt"> Ja,   
+			<label for="pxsswd"> zur Verschlüsselung mit AES-256 bitte Passwort eingeben (4 Großbuchstaben von A bis Z): <input id="pxsswd" name="pxsswd" type="password" 
+				 minlength="0" maxlength="4" > </label> </div>
+	        <div style="text-indent:350px;"> <input type="radio" id="sxcrxt" name="sxcrxt" value="0"> <label for="sxcrxt"> Nein </label> </div>
+			
+		<br><br>
+
 		<pre><button> ... und ab ins World-Wide Web!</button></pre>
+
     	</form>
     </div>
 
-    <div style="text-indent:1200px;">
+	<div style="text-indent:1200px;">
 	<a href="./db_employee.html">
-    		<input type="submit" value=">>> Hierlang zur NoSQL-Mitarbeiterdatenbank >>>" />
-	</form>
-    </div>
+	<input type="submit" value=">>> Hierlang zur NoSQL-Mitarbeiterdatenbank >>>" />
+    	</div>
 
 
   </body>

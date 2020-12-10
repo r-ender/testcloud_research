@@ -2,11 +2,27 @@ version: '3'
 services:
   frontend_tls_srv:
     build: ./frontend_tls_srv
-    image: 0891860/cloud_microservs:frontend_tls_srv
+    image: 0891860/testcloud_image:frontend_tls_srv
     ports: 
       - "8082:8082"
     depends_on:
-      - hello_world_service
-  hello_world_service:
-    build: ./hello_world_service
-    image: 0891860/cloud_microservs:hello_world_service
+      - mongodaemon_service
+      - mongodb_service
+      - endecrypt_service
+
+  mongodb_service:
+    build: ./mongodb_service
+    image: 0891860/testcloud_image:mongodb_service
+    ports:
+      - 27017:27017
+    depends_on:
+      - mongodaemon_service
+      - endecrypt_service
+
+  mongodaemon_service:
+    build: ./mongodaemon_service
+    image: 0891860/testcloud_image:mongodaemon_service
+
+  endecrypt_service:
+    build: ./endecrypt_service
+    image: 0891860/testcloud_image:endecrypt_service

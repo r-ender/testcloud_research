@@ -12,25 +12,31 @@
     <div style="text-indent:375px;"> <img src="database_img.png" alt="Datenbank-Foto" width="300" height=300></div>
      
     <br>
-<form method="post">
-    <div style="text-indent:400px;"> <label for="persnr">Personalnummer (5-stellig): <div style="text-indent:400px;"> <input id="persnr" name="persnr"> </div> </label> </div>
-	<br>
-    <div style="text-indent:400px;"> <label for="username">Vor- und Nachname: <div style="text-indent:400px;"> <input id="username" name="username"> </div> </label> </div>
-	<br>
-    <div style="text-indent:400px;"> <label for="Stellenbezeichnung">Stelle: <div style="text-indent:400px;"> <input id="stelle" name="stelle"> </div> </label> </div>
-	<br>
-    <div style="text-indent:400px;"> <label for="Eintrittsdatum">Eintrittsdatum(TT.MM.JJJJ): <div style="text-indent:400px;"> <input id="entrydate" name="entrydate"> </div> </label> </div>
+	<form method="post">
+	    <div style="text-indent:400px;"> <label for="persnr">Personalnummer (5-stellig): <div style="text-indent:400px;"> <input id="persnr" name="persnr" 
+		minlength="5" maxlength="5" required> </div> </label> </div>
+		<br>
+	    <div style="text-indent:400px;"> <label for="username">Vor- und Nachname: <div style="text-indent:400px;"> <input id="username" name="username" 
+			minlength="3" maxlength="25" required></div> </label> </div>
+		<br>
+	    <div style="text-indent:400px;"> <label for="Stellenbezeichnung">Stelle: <div style="text-indent:400px;"> <input id="stelle" name="stelle" 
+			minlength="3" maxlength="35" required> </div> </label> </div>
+		<br>
+	    <div style="text-indent:400px;"> <label for="Eintrittsdatum">Eintrittsdatum (TT.MM.JJJJ): <div style="text-indent:400px;"> <input id="entrydate" name="entrydate" 
+			minlength="10" maxlength="10" required> </div> </label> </div>
+		<br>
+	        
+	    <div style="text-indent:400px;"> <p>Ist der Datenbank-Eintrag geheim? (wird verschlüsselt gespeichert):<p> </div>
+	    <div style="text-indent:400px;"> <input type="radio" id="secret" name="secret" value="1"> <label for="secret"> VS-Vertraulich oder höher eingestuft, 
+			<label for="passwd"> Zugriffs- und Verschlüsselungspasswort eingeben (4 Großbuchstaben von A bis Z): <input id="passwd" name="passwd" type="password" 
+				 minlength="0" maxlength="4" > </label> </div>
+	    <div style="text-indent:400px;"> <input type="radio" id="secret" name="secret" value="0"> <label for="secret"> Offen oder VS-NfD </label> </div>
 
-    <br>
-    
-    <div style="text-indent:400px;"> <p>Ist der Datenbank-Eintrag geheim? (wird verschlüsselt gespeichert):<p> </div>
-    <div style="text-indent:400px;"> <input type="radio" id="secret" name="secret" value="1"> <label for="secret"> VS-Vertraulich oder höher eingesetuft </label> </div>
-    <div style="text-indent:400px;"> <input type="radio" id="secret" name="secret" value="0"> <label for="secret"> Offen oder VS-NfD </label> </div>
+	    <br><br>
 
-    <br><br>
+	    <div style="text-indent:500px;"> <input type="submit" value="senden"> </div>
+	</form>
 
-    <div style="text-indent:500px;"> <input type="submit" value="senden"> </div>
-</form>
     <div style="text-indent:1200px;">
 	<a href="./index.html">
     		<input type="submit" value="<<< Hierlang zur Startseite <<<" />
@@ -40,5 +46,3 @@
 
   </body>
 </html>
-
-

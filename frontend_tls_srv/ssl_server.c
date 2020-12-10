@@ -14,6 +14,12 @@
 #include <resolv.h>
 #include "openssl/ssl.h"
 #include "openssl/err.h"
+#include <sys/un.h>
+
+
+#define SOCK_MongoDB_srvc "/tmp/mongodbsrvc.socket"
+#define SOCK_endecrypt_srvc "/tmp/endecryptsrvc.socket"
+#define BUFFERSIZE 50
 
 
 int client[10] = {-1};	//initialize clients as not-connected
@@ -163,14 +169,15 @@ void response(int n)
 			}
 		}
 		if(strncmp(string_piece[0], "PUT", 3) == 0)	puts("No PUT-method available yet!\n");
-		if(strncmp(string_piece[0], "POST", 4) == 0 && strcmp(string_piece[1],"upload.html") == 0)	
+		if(strncmp(string_piece[0], "POST", 4) == 0 && ( strcmp(string_piece[1],"index.html") == 0 || strcmp(string_piece[1],"") == 0) )
 		{
 			puts("POST-method in action!\n");
 			FILE *fp;
-			char *buffer2,*tmpbuf;
-			buffer2 = calloc(strlen(backup_buf),sizeof(char));
-			tmpbuf = calloc(strlen(backup_buf),sizeof(char));
-			strncpy(buffer2,backup_buf,strlen(backup_buf));
+
+			char *buffer2;
+			buffer2 = (char *)(malloc(sizeof(char *) * (strlen(backup_buf)+1)));
+			strncpy(buffer2,backup_buf,strlen(backup_buf)+1);
+
 			char *edit_buf = strstr(backup_buf, "filename");  		//search for string filename in buf
 			if (edit_buf != NULL) printf("return: %s\n", edit_buf);
 
@@ -178,49 +185,78 @@ void response(int n)
 			str_piece[0] = strtok(edit_buf,"\"");				//filter the filename
 			str_piece[1] = strtok(NULL,"\"");
 
-			int line_count=0,x=0;
-			char tmp_buf;
-			do							//count lines of string
-			{
-				if(buffer2[x] == '\n') line_count++; 
-				tmp_buf = buffer2[x];
-				x++;
-			}while(tmp_buf != '\0');
-
-			//rest of string
-			strtok(buffer2,"\n");
-
-			//the payload-content starts at line 15 and continues until 3 lines before end of file
-			for(int i=0; i<(line_count-3); i++)
-			{
-				
-				if (i>15) 
-				{
-					strcpy(tmpbuf,strtok(NULL,"\n"));
-					strcat(tmpbuf,"\n");
-					//printf("tmpbuf[Line-nr. %d]: \n%s", i, tmpbuf);
-					fp = fopen(str_piece[1],"a+");
-					fwrite(tmpbuf,1,strlen(tmpbuf),fp);
-					fclose(fp);
-				}
-				else
-				{
-					//printf("Line nr.: %d\n", i);
-					strtok(NULL,"\n");
-				}	
+			for(int i=1; i<18; i++){ 					//separate the text of file from the header
+				strtok_r(buffer2,"\n",&buffer2);
 			}
 
-			//create directory and move uploaded files to pesistent home-folder
-			if (system("mkdir -m777 -p ~/upload_cloud") != 0) puts("ERROR---ERROR---ERROR: error creating directory\n");	
+			char *tmpbuf;
+			tmpbuf = (char *) malloc(sizeof(char *) * strlen(buffer2));
+			strcpy(tmpbuf, buffer2);
+			tmpbuf[strlen(buffer2)-291] = '\0';  
 
-			char upload_folder[100] = {0};
-			strncpy(upload_folder, "mv -f ", 6);
-			strncat(upload_folder, str_piece[1], strlen(str_piece[1]));
-			strncat(upload_folder, " ~/upload_cloud/", 16);
+			fp = fopen(str_piece[1],"a+");
+			fwrite(tmpbuf,1,strlen(tmpbuf),fp);
+			fclose(fp);
+
+			//create directory and move uploaded files to persistent home-folder
+			if (system("mkdir -m777 -p /tmp/upload_cloud") != 0) puts("ERROR---ERROR---ERROR: error creating directory\n");	
+
+			char upload_folder[200] = {0};
+			sprintf(upload_folder, "mv -f %s /tmp/upload_cloud", str_piece[1]);
 			if (system(upload_folder) != 0) puts("ERROR---ERROR---ERROR: move file to home\n");
+			sprintf(upload_folder, "chmod 666 /tmp/upload_cloud/%s", str_piece[1]);
+			if (system(upload_folder) != 0) puts("ERROR---ERROR---ERROR: change mode to 666\n");
 
-			free(buffer2);
-			free(tmpbuf);
+
+			edit_buf = strstr(buffer2, "sxcrxt") + 10;
+			if (edit_buf == NULL) puts("----- Error parsing secret! ---------");		
+	 		
+			if( atoi(edit_buf) == 1 ) 
+			{
+				char *edit_buf = strstr(buffer2,"pxsswd") + 11;
+				if (edit_buf == NULL) puts("----- Error parsing passwd! ---------");
+				memset(edit_buf+4, '\0', 1);
+				
+							/*	call endecrypt to encrypt	*/
+				
+				struct sockaddr_un client_sock;
+				int data_sock;	
+				char crypt_buffer[150] = {0};						
+
+				//create local socket
+				data_sock = socket(AF_UNIX, SOCK_SEQPACKET, 0);
+				if(data_sock == -1)
+				{
+					perror("socket");
+					exit(EXIT_FAILURE);
+				}
+
+				memset(&client_sock,0,sizeof(struct sockaddr_un));		//zeroize struct socket address unix
+				
+				//connect socket so sockaddr
+				client_sock.sun_family = AF_UNIX;
+				strncpy(client_sock.sun_path, SOCK_endecrypt_srvc, sizeof(client_sock.sun_path)-1);
+
+				if(connect(data_sock, (const struct sockaddr *) &client_sock, sizeof(struct sockaddr_un)) == -1)
+				{
+					fprintf(stderr, "The server of endecrypt is down.\n");
+					puts("---- continue might result in corrupted data ----\n");
+				}
+
+				sprintf(crypt_buffer,"encrypt,/tmp/upload_cloud/%s,%s",str_piece[1],edit_buf);
+				if(write(data_sock,crypt_buffer, strlen(crypt_buffer)+1) == -1) perror("write:");
+
+				//wait for server to be ready again
+				if(read(data_sock,crypt_buffer, BUFFERSIZE) == -1)
+				{
+					perror("read:");
+					exit(EXIT_FAILURE);
+				}
+
+				close(data_sock);
+				
+			}
+
 
 			int fd=open("upload.html",O_RDONLY);
 			struct stat filestat;
@@ -239,46 +275,99 @@ void response(int n)
 			char *edit_buf = strstr(backup_buf, "persnr");  		//search for string persnr in buf
 			if (edit_buf == NULL) puts("----- Error parsing! ---------");
 
-			char *persnr, *username, *stelle, *entrydate, *secret;
-			persnr = strtok(edit_buf,"=");
+			char *persnr, *username, *stelle, *entrydate, *secret, *passwd;
+			strtok(edit_buf,"=");
 			persnr = strtok(NULL,"&");
 			
-			username = strtok(NULL,"=");
+			strtok(NULL,"=");
 			username = strtok(NULL,"&");
 
-			stelle = strtok(NULL,"=");
+			strtok(NULL,"=");
 			stelle = strtok(NULL,"&");
 
-			entrydate = strtok(NULL,"=");
+			strtok(NULL,"=");
 			entrydate = strtok(NULL,"&");
 
-			secret = strtok(NULL,"=");
-			secret = strtok(NULL,"\n");
+			strtok(NULL,"=");
+			secret = strtok(NULL,"&");
+
+			strtok(NULL,"=");
+			passwd = strtok(NULL,"\n");
 
 			printf("persnr: %s\n", persnr);		
 			printf("username: %s\n", username);	
 			printf("stelle: %s\n", stelle);	
 			printf("Entry-Date: %s\n", entrydate);	
 			printf("secret: %s\n", secret);
+			printf("passwd: %s\n", passwd);
 
-			
+			//to do: checking of input data !!!
 
+			//send parsed inputs to MongoDB-insert-service, functions as client and sends data to CRUDinsert-service
+			struct sockaddr_un client_sock;
+			int data_sock;
+			char buffer[BUFFERSIZE] = {0};
+
+			//create local socket
+			data_sock = socket(AF_UNIX, SOCK_SEQPACKET, 0);
+			if(data_sock == -1)
+			{
+				perror("socket");
+				exit(EXIT_FAILURE);
+			}
+
+			memset(&client_sock,0,sizeof(struct sockaddr_un));		//zeroize struct socket address unix
 			
-		
-		}
-		if(strncmp(string_piece[0], "PATCH", 5) == 0)	puts("No PATCH-method available yet!\n");
-		if(strncmp(string_piece[0], "DELETE", 6) == 0)	puts("No DELETE-method available yet!\n");
-	    }
-	    else
-	    {
-		puts("Wrong HTTP-Version!\n");
-	    }
+			//connect socket so sockaddr
+			client_sock.sun_family = AF_UNIX;
+			strncpy(client_sock.sun_path, SOCK_MongoDB_srvc, sizeof(client_sock.sun_path)-1);
+
+			if(connect(data_sock, (const struct sockaddr *) &client_sock, sizeof(struct sockaddr_un)) == -1)
+			{
+				fprintf(stderr, "The server of CRUDinsert is down.\n");
+				exit(EXIT_FAILURE);
+			}
+
+			//send database-sets
+			if(write(data_sock,persnr, strlen(persnr)+1) == -1) perror("write:");
+			if(write(data_sock,username, strlen(username)+1) == -1) perror("write:");
+			if(write(data_sock,stelle, strlen(stelle)+1) == -1) perror("write:");
+			if(write(data_sock,entrydate, strlen(entrydate)+1) == -1) perror("write:");
+			if(write(data_sock,secret, strlen(secret)+1) == -1) perror("write:");
+
+			if(atoi(secret) == 1){
+				if(write(data_sock,passwd, strlen(passwd)+1) == -1) perror("write:");
+			}
+
+			strcpy(buffer, "DOWN");
+			if(write(data_sock,buffer, strlen(buffer)+1) == -1) perror("write:");
+			close(data_sock);		//only close data_sock, conn_sock muss von server geschlossen werden
+
+			//open index.html again
+			int fd=open("index.html",O_RDONLY);
+			struct stat filestat;
+			char sendbuf[300] = {0};
+			fstat(fd,&filestat);
+    			strcpy(request, "HTTP/1.1 200 OK\r\nContent-Type: text/html Content-Length: 300\r\n\r\n"); //send http-header
+    			SSL_write(ssl, request, strlen(request));				
+			SSL_write(ssl, sendbuf, read(fd,sendbuf,filestat.st_size+1));		//read parses file and returns number of parsed bytes 
+
+				}
+				if(strncmp(string_piece[0], "PATCH", 5) == 0)	puts("No PATCH-method available yet!\n");
+				if(strncmp(string_piece[0], "DELETE", 6) == 0)	puts("No DELETE-method available yet!\n");
+			    }
+			    else
+			    {
+				puts("Wrong HTTP-Version!\n");
+			    }
 
 
 }
 
+
 int main(int argc, char *Argc[])
 {
+
     int sock;
     SSL_CTX *ctx;
 

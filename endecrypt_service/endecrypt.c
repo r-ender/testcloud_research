@@ -12,8 +12,8 @@
 #include <stdbool.h>
 #include <sys/un.h>
 
-#define SOCK_NAME "/tmp/endecrypt.socket"
-#define BUFFERSIZE 50
+#define SOCK_endecrypt_srvc "/tmp/endecryptsrvc.socket"
+#define BUFFERSIZE 100
 
 void ErrorHandling(void)
 {
@@ -84,21 +84,21 @@ int decryption(unsigned char *ciphertxt, int len_ciphertxt, unsigned char *key, 
 
 void pre_endecrypt_fct(char* x)
 {
-	char *str_piece[2];
+	char *str_piece[3];
 
 	str_piece[0] = strtok(x,",");
 	str_piece[1] = strtok(NULL,",");
+	str_piece[2] = strtok(NULL, ",");
 
-	printf("received file %s to %s\n", str_piece[1], str_piece[0]);
+	printf("received file %s to %s with password:%s\n", str_piece[1], str_piece[0],str_piece[2]);
 
 	//parse 4 characters as password for encryption/decription
 	char passphrase[5] = {0};
-	//bool flag = false;
-	//bool encrypt = false;
 	unsigned char *my_key, *my_iv, *plaintxt, *en_or_decryptedtxt;
 	unsigned int len_plaintxt, len_endecrtxt;
 
-/*	
+/*	bool flag = false;
+	bool encrypt = false;
 	do{
 
 		puts("Please enter your passphrase (four capital letters from A to Z): ");
@@ -113,10 +113,10 @@ void pre_endecrypt_fct(char* x)
 	}while(flag != true);
 */	
 
-	strcpy(passphrase,"KLAR");
 	//set up 256-bit key and 128-bit IV, convert characters into integers into string and save it as key resp. iv
 	my_key = calloc(32,sizeof(unsigned char));
-	my_iv = calloc(16,sizeof(unsigned char));	
+	my_iv = calloc(16,sizeof(unsigned char));
+	strcpy(passphrase,str_piece[2]);	
 
 	for(int i=0; i<=3;i++)
 	{
@@ -142,8 +142,7 @@ void pre_endecrypt_fct(char* x)
 	if(strcmp(str_piece[0],"encrypt") == 0)
 	{ 
 		//encrypting the plaintext
-		len_endecrtxt = encryption(plaintxt, len_plaintxt, my_key, my_iv, en_or_decryptedtxt);
-		
+		len_endecrtxt = encryption(plaintxt, len_plaintxt, my_key, my_iv, en_or_decryptedtxt);	
 	}
 	else
 	{	
@@ -172,7 +171,7 @@ int main(void)
 {
 
 	struct sockaddr_un serv_sock;			//unix socket adress
-	int down=0, conn_sock, data_sock;
+	int conn_sock, data_sock;
 	char buffer[BUFFERSIZE], cbuffer[BUFFERSIZE];
 
 	//Creation of local socket
@@ -187,12 +186,12 @@ int main(void)
 
 	//bind socket
 	serv_sock.sun_family = AF_UNIX;				//address-family is UNIX
-	strncpy(serv_sock.sun_path, SOCK_NAME, sizeof(serv_sock.sun_path)-1);
-	//retval = bind(conn_sock, (const struct sockaddr *) &serv_sock, sizeof(struct sockaddr_un));
-	if(bind(conn_sock, (const struct sockaddr *) &serv_sock, sizeof(struct sockaddr_un)) == -1)
+	strncpy(serv_sock.sun_path, SOCK_endecrypt_srvc, sizeof(serv_sock.sun_path)-1);
+
+	if(bind(conn_sock, (const struct sockaddr *) &serv_sock, sizeof(struct sockaddr_un)) == -1) 
 	{
-		perror("bind:");
-		exit(EXIT_FAILURE);
+		system("rm /tmp/endecryptsrvc.socket");
+		bind(conn_sock, (const struct sockaddr *) &serv_sock, sizeof(struct sockaddr_un));
 	}
 	
 	//set backlog size to 10
@@ -215,7 +214,7 @@ int main(void)
 		//wait for incoming data-packet
 		if(read(data_sock,buffer, BUFFERSIZE) == -1)
 		{
-			perror("read:");
+			perror("read nr.1:");
 			exit(EXIT_FAILURE);
 		}
 
@@ -233,28 +232,12 @@ int main(void)
 			perror("write:");
 			exit(EXIT_FAILURE);
 		}
-
-		if(read(data_sock,buffer, BUFFERSIZE) == -1)
-			{
-				perror("read:");
-				exit(EXIT_FAILURE);
-			}
-
-			buffer[BUFFERSIZE-1] = 0;	//zero-terminate buffer
 		
-		//handle comds
-		if(!strncmp(buffer, "DOWN", BUFFERSIZE))
-		{
-			down = 1;
-		}
-
-		close(data_sock);
-		if(down) break;
 	}
 
 	close(conn_sock);
 	
-	unlink(SOCK_NAME);
+	unlink(SOCK_endecrypt_srvc);
 
 	return 0;
 }
