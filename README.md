@@ -10,3 +10,5 @@ Requirements: docker, bash, depending on the settings of your Linux-OS root-user
 
 A german description of every single step within the bash-script is contained in ReadMe.txt
 
+The pictures are screenshots of the frontend
+
