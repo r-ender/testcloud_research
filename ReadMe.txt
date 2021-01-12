@@ -36,7 +36,7 @@ sudo docker exec -ti tls_server_ctr bash
 
 Netzwerk:
 Die Container wurden so gebaut, dass NAT vom Host verwendet werden, darum auch die Weiterleitung durch das Argument -p8082:8082.
-NAT erkennt man IP-Adressen der eigenen Rechner aus einem der privaten Adressbereiche: 
+NAT erkennt man anhand der IP-Adressen der eigenen Rechner aus einem der privaten Adressbereiche: 
 10.0.0.0 bis 10.255.255.255 oder CIDR: 10.0.0.0/8 (bloß die ersten 8 Bit sind fest hier: 0xFF000000), 
 172.16.0.0 bis 172.31.255.255 oder CIDR: 172.16.0.0/12,
 192.168.0.0 bis 192.168.255.255 oder CIDR: 192.168.0.0/16
