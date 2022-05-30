@@ -13,6 +13,10 @@
 #include <QJsonDocument>
 #include <fstream>
 #include <iostream>
+#include <cstdio>
+#include <string>
+#include <bluetooth_wrapper.hpp>
+
 
 using namespace std;
 
@@ -21,11 +25,11 @@ class BackendStuff : public QObject
     Q_OBJECT
     Q_PROPERTY(QString receiveBuffer READ getBuffer NOTIFY bufferChanged)
     Q_PROPERTY(QString UserInput READ UserInput WRITE setUserInput NOTIFY UserInputChanged)
+    Q_PROPERTY(QString BluetoothAdr READ BluetoothAdr WRITE setBluetoothAdr NOTIFY BluetoothAdrChanged)
 
 public:
     explicit BackendStuff(QObject *parent = nullptr);
     QTcpSocket *tcpSocket;
-
 
     QString getBuffer(){
         //bytesAvailable(): Returns the number of incoming bytes that are waiting to be read.
@@ -79,8 +83,55 @@ public:
     }
 
     QString UserInput() const {
-            //qDebug() << "UserInput";
+            qDebug() << "UserInput getter function";
             return m_UserInput;
+    }
+
+    void setBluetoothAdr(const QString &a)
+    {
+        if (a != NULL)
+        {
+            if (a != m_BluetoothAdr)
+            {
+                m_BluetoothAdr = a;
+                emit BluetoothAdrChanged();
+            }
+            qDebug() << "(in function setBluetoothAdr) setBluetoothAdr: " << m_BluetoothAdr;
+
+            //write Bluetooth-Adr in file to make it persistent
+            QString path = QString("/tmp/motalk_bt-address.txt"); //set filepath
+            QFile file(path);
+
+            //write m_BluetoothAdr into file with overwrite-mode
+            if(!file.open(QIODevice::WriteOnly)){
+                file.close();
+            } else{
+                QTextStream out(&file); out << m_BluetoothAdr;
+                file.close();
+            }
+        }
+    }
+
+    QString BluetoothAdr() const {
+        //qDebug() << "BluetoothAdr getter function";
+        QString parsed_btadr;
+        QString path = QString("/tmp/motalk_bt-address.txt");
+        QFile file(path);
+
+        //read out of file
+        if(!file.open(QIODevice::ReadOnly)){
+            file.close();
+        } else {
+            QTextStream in(&file);
+            while(!in.atEnd()){
+                parsed_btadr = in.readLine();
+            }
+
+            file.close();
+        }
+
+        return parsed_btadr;
+        //return m_BluetoothAdr;
     }
 
     //from QAfbWebSocketClient
@@ -93,6 +144,7 @@ signals:
     void hasReadSome(QString msg);
     void bufferChanged();
     void UserInputChanged();
+    void BluetoothAdrChanged();
 
 public slots:
     void gotError(QAbstractSocket::SocketError err);
@@ -104,6 +156,8 @@ public slots:
     void disconnectClicked();
     void closeConnection();
     void connect2host();
+    //bluetooth-test
+    void bluetooth_test();
 
 private slots:
     void readyRead();
@@ -114,7 +168,7 @@ private:
     //from QAfbWebSocketClient
     int m_nextCallId, port;
     QMap<QString, closure_t> m_closures;
-    QString host, m_receivebuffer, m_UserInput;
+    QString host, m_receivebuffer, m_UserInput, m_BluetoothAdr;
     bool tcp_status, ws_status = false;
     QTimer *timeoutTimer;
     QByteArray receive_dump;
@@ -226,6 +280,43 @@ void BackendStuff::sendMessage(QString api, QString verb)
     call(api,verb,(QJsonValue)obj,nullptr);
 }
 
+void BackendStuff::bluetooth_test()
+{
+    qDebug() << "Bluetooth-test-Bluetooth-test\n";
+
+    Bluetooth_Wrapper bt_wrapper;
+    int s, status;
+
+    s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);	//domain: bluetooth, type:data-stream, BT-Protocol: RFCOMM
+
+    std::string bthadr = BluetoothAdr().toStdString();
+
+    std::cout << "User getter bluetooth addr: " << bthadr << std::endl;
+
+        //status = bt_wrapper.bt_connect(s, (struct sockaddr *)&addr2, sizeof(addr2));	//connect to server
+        status = bt_wrapper.bt_connect(s,&bthadr);
+
+        std::string output = m_UserInput.toStdString(); //convert QString to std::string
+
+        //std::cout << "User-Input: " << m_UserInput << std::endl;
+        //std::cout << "User-Input: " << output << std::endl;
+        //std::cout << "Stringlength: " << output.length()  << std::endl;
+
+        // send  message
+        if( status == 0 ) {
+            //status = bt_wrapper.bt_write(s, "hello!", 6);
+            bt_wrapper.bt_write(s,&output[0],output.length()); //write-function requires void-pointer, hence the address of first element
+            //bt_wrapper.bt_write(s,output,output.length());
+        }
+
+        if( status < 0 ){
+            std::cout << "status: " << status << std::endl;
+            std::perror("uh oh - bt connecting and sending not possible");
+    }
+
+        close(s);
+
+}
 
 void BackendStuff::disconnectClicked()
 {

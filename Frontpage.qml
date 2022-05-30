@@ -35,66 +35,131 @@ Page {
 
                     //model: model
                     Rectangle{
+                            id: _rect1
                             color: "grey"
                             y: 100
                             x: 50
                             width: _listView.width - _listView.leftMargin - _listView.rightMargin
-                            height: _avatar_Hiller.implicitHeight
+                            height: _avatar_keyboard.implicitHeight
                             border.width: 5
                             border.color: "black"
 
 
                             Image {
-                                id: _avatar_Hiller
-                                sourceSize.width: 250
+                                id: _avatar_keyboard
+                                sourceSize.width: 200
                                 sourceSize.height: 160
-                                anchors.left: parent.left
-                                source: "qrc:/Marco_Hiller.jpeg"
+                                anchors.left: _rect1.left
+                                anchors.leftMargin: 10
+                                anchors.top: _rect1.top
+                                anchors.topMargin: 7
+                                anchors.bottom: _rect1.bottom
+                                anchors.bottomMargin: 7
+                                source: "qrc:/keyboard_pc.png"
                             }
 
                             Text{
-                                anchors.left: _avatar_Hiller.right
-                                y: 70
-                                anchors.leftMargin: 20
+                                anchors.right: _rect1.right
+                                anchors.top: _rect1.top
+                                anchors.topMargin: 40
+                                anchors.rightMargin: 80
                                 text: "Choose type-option"
                                 font.pixelSize: 20
                             }
 
                             MouseArea{
                                 anchors.fill: parent
-                                onClicked: _front.StackView.view.push("qrc:/type_option.qml")
+                                onClicked: _front.StackView.view.push("qrc:/type_option.qml")   //this is a URL
+                                    //items that StackView creates from Components or URLs are destroyed by the StackView.pop()
                             }
                     }
 
                     Rectangle{
+                            id: _rect2
                             color: "grey"
-                            y: 400
+                            y: 300
                             x: 50
                             width: _listView.width - _listView.leftMargin - _listView.rightMargin
-                            height: _avatar_Lex.implicitHeight
-                            //leftPadding: _avatar.implicitWidth + 32
+                            height: _avatar_voice.implicitHeight
                             border.width: 5
                             border.color: "black"
 
                             Image {
-                                id: _avatar_Lex
-                                anchors.left: parent.left
-                                source: "qrc:/Stefan_Lex.jpeg"
-                                sourceSize.width: 130
+                                id: _avatar_voice
+                                anchors.left: _rect2.left
+                                anchors.leftMargin: 50
+                                anchors.top: _rect2.top
+                                anchors.topMargin: 7
+                                anchors.bottom: _rect2.bottom
+                                anchors.bottomMargin: 7
+                                source: "qrc:/loudspeaker_boy.png"
+                                sourceSize.width: 110
+                                sourceSize.height: 100
                             }
 
                             Text{
-                                anchors.left: _avatar_Lex.right
-                                y: 60
-                                anchors.leftMargin: 20
+                                anchors.right: _rect2.right
+                                anchors.top: _rect2.top
+                                anchors.topMargin: 40
+                                anchors.rightMargin: 55
                                 text: "Choose speech-option"
                                 font.pixelSize: 20
                             }
 
                             MouseArea{
                                 anchors.fill: parent
-                                onClicked: _front.StackView.view.push("qrc:/speech_option.qml")
+                                onClicked: _front.StackView.view.push("qrc:/speech_option.qml") //this is a URL
+                                //items that StackView creates from Components or URLs are destroyed by the StackView
                             }
+                    }
+
+                    //bloß für Bluetooth-test
+                    BackendStuff {
+                        id: _afbBackend
+                    }
+
+                    Rectangle{
+                        id: _rect3
+                        color: "grey"
+                        y: 500
+                        x: 50
+                        width: _listView.width - _listView.leftMargin - _listView.rightMargin
+                        height: _avatar_voice.implicitHeight
+                        border.width: 5
+                        border.color: "black"
+
+                        Image {
+                            id: _bt_symbol
+                            anchors.left: _rect3.left
+                            anchors.leftMargin: 50
+                            anchors.top: _rect3.top
+                            anchors.topMargin: 7
+                            anchors.bottom: _rect3.bottom
+                            anchors.bottomMargin: 7
+                            source: "qrc:/bluetooth_symbol.png"
+                            sourceSize.width: 110
+                            sourceSize.height: 100
+                        }
+
+                        Text{
+                            anchors.right: _rect3.right
+                            anchors.top: _rect3.top
+                            anchors.topMargin: 40
+                            anchors.rightMargin: 55
+                            text: "Bluetooth Address"
+                            font.pixelSize: 20
+                        }
+
+                        MouseArea{
+                            anchors.fill: parent
+                            onClicked:
+                            {
+                                // _afbBackend.bluetooth_test();
+                                _front.StackView.view.push("qrc:/bluetooth_option.qml") //this is a URL
+                                //items that StackView creates from Components or URLs are destroyed by the StackView
+                            }
+                        }
+
                     }
                 }
     }
