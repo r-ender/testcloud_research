@@ -11,6 +11,12 @@ import io.qt.BackendStuff 1.0
 
 Page {
         id: _root
+        signal triggert
+        property bool voice_cap_time: false
+
+        property int defaultSeconds: 2
+        property int seconds: defaultSeconds
+
 
         /*
          // WINDOW PROPERTIES
@@ -19,6 +25,9 @@ Page {
         height: 680
         color:"steelblue"
     */
+        BackendStuff{
+            id: _afbBackend
+        }
 
         Button{
             id: _backButton
@@ -48,53 +57,238 @@ Page {
                 fillMode: Image.Tile; opacity: 0.3
         }
 
-        BackendStuff {
-            id: _afbBackend
-        }
-
             Text{
                 id: _speech
-                y: 50
-                x: 100
-                text: "...recording!"
-                font.pixelSize: 50
+                y: 250
+                x: 75
+                text: "...recording for 5 sec!"
+                font.pixelSize: 40
                 color: "grey"
-            }
+                }
+
+            Text{
+                id: _speech2
+                y: 500
+                x: 75
+                text: "...listening to voice-message!"
+                font.pixelSize: 40
+                color: "grey"
+                }
+
+           Timer {
+                   id: innerTimer
+                   //repeat: true
+                   //interval: 1000
+                   onTriggered: {
+                       running = true;
+                       //_speech.color = "green";
+                       //_speech.font.pixelSize = 80;
+                       _afbBackend.capture_voice();
+                       //running = true;
+                       /*
+                       _root.seconds--;
+                       if (_root.seconds == 0) {
+                           running = false;
+                           _root.seconds = _root.defaultSeconds
+                           _speech.color = "grey"
+                           _speech.font.pixelSize = 40;
+                           _root.triggert()
+                       }*/
+                       _speech.color = "grey"
+                       _speech.font.pixelSize = 40;
+                       running = false;
+                   }
+               }
+
+           Timer {
+                   id: innerTimer2
+                   //repeat: true
+                   //interval: 1000
+                   onTriggered: {
+                       running = true;
+                       _afbBackend.listen_msg();
+                       _speech2.color = "grey"
+                       _speech2.font.pixelSize = 40;
+                       running = false;
+                   }
+               }
 
             Rectangle{
+                    id: _rect3
                     color: "grey"
-                    y: 500
+                    y: 150
                     x: 100
-                    width: 500
-                    height: _mikropic.implicitHeight
+                    width: 460
+                    height: _mikropic.implicitHeight + 20
                     border.width: 5
                     border.color: "black"
 
                     Image {
                         id: _mikropic
+                        anchors.left: _rect3.left
+                        anchors.leftMargin: 10
+                        anchors.top: _rect3.top
+                        anchors.topMargin: 10
                         sourceSize.width: 250
                         sourceSize.height: 200
-                        anchors.left: parent.left
                         source: "qrc:/mikro.png"
                     }
 
                     Text{
                         anchors.left: _mikropic.right
+                        anchors.leftMargin: 10
+                        anchors.rightMargin: 10
+                        anchors.top: _rect3.top
+                        anchors.topMargin: 35
+                        text: "press and wait 1sec for recording"
+                        font.pixelSize: 23
+                    }
+
+                    /*
+                    Timer{
+                        id: _timer2
+                        interval: 1000 //fühlt sich wie 5se an
+                        repeat: false
+                        running: false
+
+                        onTriggered:
+                        {
+                            _speech.font.pixelSize = 80;
+                            _speech.color = "green";
+                        }
+                    } */
+
+                    MouseArea{
+                        id: _mouseArea1
+                        anchors.fill: parent
+
+                        onClicked:
+                        {
+                            _speech.font.pixelSize = 80;
+                            _speech.color = "green";
+                            innerTimer.start();
+                        }
+                    }
+
+            }
+
+
+            Rectangle{
+                    id: _rect4
+                    color: "grey"
+                    y: 400
+                    x: 100
+                    width: 460
+                    height: _speakerpic.implicitHeight + 80
+                    border.width: 5
+                    border.color: "black"
+
+                    Image {
+                        id: _speakerpic
+                        anchors.left: _rect4.left
+                        anchors.leftMargin: 40
+                        anchors.top: _rect4.top
+                        anchors.topMargin: 40
+                        sourceSize.width: 250
+                        sourceSize.height: 200
+                        source: "qrc:/lautsprecher.png"
+                    }
+
+                    Text{
+                        anchors.left: _speakerpic.right
                         anchors.leftMargin: 50
-                        text: "press & hold for voice capture"
-                        font.pixelSize: 20
+                        anchors.rightMargin: 10
+                        anchors.top: _rect4.top
+                        anchors.topMargin: 35
+                        text: "listen to voice-message"
+                        font.pixelSize: 23
                     }
 
                     MouseArea{
+                        id: _mouseArea2
                         anchors.fill: parent
-                        onPressAndHold:
+
+                        onClicked:
                         {
-                            _speech.font.pixelSize = 100;
-                            _speech.color = "green";
+                            _speech2.font.pixelSize = 80;
+                            _speech2.color = "green";
+                            innerTimer2.start();
                         }
                     }
+
             }
-        }
+ }
+
+
+/*
+            Rectangle{
+                    id: _rect4
+                    color: "grey"
+                    y: 300
+                    x: 100
+                    width: 450
+                    height: _mikropic.implicitHeight + 20
+                    border.width: 5
+                    border.color: "black"
+
+                    signal xpressed()
+
+                    Timer{
+                        id: _timer1
+                        interval: 5000 //press-and-hold
+                        repeat: false
+                        running: false
+
+                        onTriggered: {
+                            _rect4.xpressed();
+                        }
+                    }
+
+                    Image {
+                        id: _mikropic4
+                        anchors.left: _rect4.left
+                        anchors.leftMargin: 10
+                        anchors.top: _rect4.top
+                        anchors.topMargin: 10
+                        sourceSize.width: 250
+                        sourceSize.height: 200
+                        source: "qrc:/mikro.png"
+                    }
+
+                    Text{
+                        anchors.left: _mikropic4.right
+                        anchors.leftMargin: 25
+                        anchors.top: _rect4.top
+                        anchors.topMargin: 35
+                        text: "press for 5sec voice capturing"
+                        font.pixelSize: 23
+                    }
+
+                    //MouseArea{
+                      //  anchors.fill: parent
+
+                        onPressedChanged:
+                        {
+                            if(pressed) {
+                                _timer1.running = true;
+
+                                _speech.font.pixelSize = 80;
+                                _speech.color = "green";
+                            }
+
+                            else
+                            {
+                                _timer1.running = false;
+                                _speech.font.pixelSize = 40;
+                                _speech.color = "grey";
+                            }
+                    }
+            //}
+}
+
+}
+
+*/
 
 
                 /*

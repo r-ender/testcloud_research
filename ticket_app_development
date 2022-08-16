@@ -6210,3 +6210,47 @@ given: mono ( = 1 channel), 16bit, 44100 Hz, playback)
 
 ---> Ton ist viiiel besser bei 4410 frames, size = frames*2 und mono als davor, evtl bisschen abgehackt. Aber manchmal bei wiedergabe dennoch Störgeräusche, als ob der output-buffer noch belegt wäre?!
 
+next: Tonaufnahme/-wiedergabe implementieren in Motalk-App
+Vorgehensweise:
+Aufnahme:
+1.) in Motalk-App BUtton hinzufügen, wenn man drückt wird Ton für 5 Sek. aufgenommen und dann unter /tmp/motalk_speech abgespeichert. 
+2.) Sprachnachricht über Bluetooth an anderes Gerät versenden
+
+Wiedergabe:
+1.) In App einen Button zum Abspielen der erhaltenen Nachricht einfügen und blinken lassen, bei Erhalt einer neuen Nachricht.
+2.) Sprachnachricht abrufen. 
+
+für ALSA bei kompilieren noch lib einbinden wie für liuxjournal (gcc -o linuxjournal3 linuxjournal3.c -lasound  ----> /usr/lib/x86_64-linux-gnu/libasound.so )
+---> nach einfügen von includepath und libpath in .pro-File sind Fehler wegen fehlender reference besitigt.
+
+Fehler beim Kompilieren:
+/usr/include/c++/7/stdlib.h:30:16: fatal error: stdlib.h: No such file or directory
+ # include_next <stdlib.h>
+                ^~~~~~~~~~
+compilation terminated.
+
+(zuerst hatte ich be cstdlib im gleichen Ordner das #include_next stdlib geändert in ../stdlib.h )
+
+--->
+Fehler verschwand nach löshcen von /usr/include bei INCLUDEPATH von .pro File.
+
+--> ich muss File erst selbst ablegen mit touch xy, damit es geöffnet werden kann. Ändern! --> done
+
+--> die Abfolge der aufgerufenen Components in QML ist verwirrend, die Rede ist von QQmlComponent::beginCreate() und Component.OnCompleted ?!
+zitat aus diesem tutorial: https://qmlbook.github.io/ch15-dynamicqml/dynamicqml.html
+The easiest way to dynamically load a QML element is to use a Loader element. This acts as a placeholder for the contents being loaded.
+
+---> nochmal anschauen states
+
+Versuch:
+engine.rootContext()->setContextProperty("settings", &settings);  klappt nicht.  
+< allgemeine Info: man kann jedes QML item auch als c++-Code schreiben, siehe dazu: https://doc.qt.io/qt-6/qtqml-cppintegration-interactqmlfromcpp.html
+QML components are essentially object trees with children that have siblings and their own children. >
+
+mit QMLengine und components kann ich property voice_cap_time kompilieren, aber die abfrage im QML-File klappt noch nciht. Evtl buzzwords item neu laden o.Ä. ?!
+Aufnahme klappt einigermaßen gut.
+
+
+Next: Wiedergabe Tonaufnahme!  Graphik passt, jetzt Funktion implementieren --> Hören klappt, evtl nach hören löschen ?!
+Versuchen Files per bluetooth zu versenden ?!
+Oder vorher versuchen alles in sauberer C++ Stil zu übertragen ?!
