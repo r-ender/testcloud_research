@@ -17,6 +17,9 @@
 #include <cstdio>
 #include <string>
 #include <bluetooth_wrapper.hpp>
+#include <QQmlProperty>
+#include <QQuickItem>
+
 
 #define ALSA_PCM_NEW_HW_PARAMS_API
 #include <alsa/asoundlib.h>
@@ -141,6 +144,7 @@ public:
     using closure_t = std::function<void(bool, const QJsonValue&)>;
     void call(const QString& api, const QString& verb, const QJsonValue& arg = QJsonValue(), closure_t closure = nullptr);
 
+    //signals can trigger qml from c++
 signals:
     void someError(QString err);
     void statusChanged2(bool);
@@ -148,7 +152,12 @@ signals:
     void bufferChanged();
     void UserInputChanged();
     void BluetoothAdrChanged();
+    void speechFinished();
+    void speechStarted();
+    void listenFinished();
+    void listenStarted();
 
+    //slots make c++ methods callable from qml
 public slots:
     void gotError(QAbstractSocket::SocketError err);
     void sendClicked(QString msg);
@@ -163,6 +172,10 @@ public slots:
     void bluetooth_test();
     void capture_voice();
     void listen_msg();
+    void teststart();
+    void testfinish();
+    void listenFinish();
+    void listenStart();
 
 private slots:
     void readyRead();
@@ -172,9 +185,9 @@ private slots:
 private:
     //from QAfbWebSocketClient
     int m_nextCallId, port;
+    bool tcp_status, ws_status = false;
     QMap<QString, closure_t> m_closures;
     QString host, m_receivebuffer, m_UserInput, m_BluetoothAdr;
-    bool tcp_status, ws_status = false;
     QTimer *timeoutTimer;
     QByteArray receive_dump;
 
@@ -195,7 +208,6 @@ BackendStuff::BackendStuff(QObject *parent) : QObject(parent)
     timeoutTimer->setSingleShot(true);
     connect(timeoutTimer, &QTimer::timeout, this, &BackendStuff::connectionTimeout);
 
-    //connect(client, &BackendStuff::statusChanged, this, &Backend::setStatus);
     //connect(client->tcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(gotError(QAbstractSocket::SocketError)));
     connect(tcpSocket, &QTcpSocket::disconnected, this, &BackendStuff::closeConnection);
 }
@@ -306,10 +318,6 @@ void BackendStuff::bluetooth_test()
 
         std::string output = m_UserInput.toStdString(); //convert QString to std::string
 
-        //std::cout << "User-Input: " << m_UserInput << std::endl;
-        //std::cout << "User-Input: " << output << std::endl;
-        //std::cout << "Stringlength: " << output.length()  << std::endl;
-
         // send  message
         if( status == 0 ) {
             //status = bt_wrapper.bt_write(s, "hello!", 6);
@@ -324,26 +332,35 @@ void BackendStuff::bluetooth_test()
         close(s);
 }
 
+void BackendStuff::teststart()
+{
+    speechStarted();
+}
+
+void BackendStuff::testfinish()
+{
+    speechFinished();
+}
+
+void BackendStuff::listenFinish()
+{
+    listenFinished();
+}
+
+void BackendStuff::listenStart()
+{
+    listenStarted();
+}
+
 void BackendStuff::capture_voice()
 {
-     qDebug() << "Aufruf von capture_voice()!\n";
-
-     //QQmlEngine engine_cap;
-     //QQmlComponent component(&engine_cap,QUrl(QStringLiteral("qrc:/speech_option.qml")));
-     //QObject *object = component.create();
-
-     //object->setProperty("voice_cap_time", 1);
-
-     //qDebug() << "Bool property value:" << object->property("voice_cap_time").toInt();
-     //object->setProperty("voice_cap_time", 1);
-
+     //qDebug() << "Aufruf von capture_voice()!\n";
+     voice_flag = false;
+     int rc, openfd, size, dir;
       long loops;
-      int rc, openfd;
-      int size;
       snd_pcm_t *handle;
       snd_pcm_hw_params_t *params;
       unsigned int val;
-      int dir;
       snd_pcm_uframes_t frames;
       char *buffer;
 
@@ -402,13 +419,7 @@ void BackendStuff::capture_voice()
         snd_pcm_hw_params_get_period_time(params, &val, &dir);
         loops = 5000000 / val;
 
-        /*
-        if( fopen("/tmp/jabra_capture.wav", "w") == NULL) printf("Error opening/creating audio sample file!\n");
-        openfd = open("/tmp/jabra_capture.wav", O_WRONLY);
-        if(openfd < 0) printf("Error opening audio sample file!\n");
-    */
-        //object->setProperty("voice_cap_time", 1);
-        while (loops > 0) {
+        while (loops > 0  && voice_flag == false) {
           loops--;
           rc = snd_pcm_readi(handle, buffer, frames);
           if (rc == -EPIPE) {
@@ -426,24 +437,21 @@ void BackendStuff::capture_voice()
             fprintf(stderr,"short write: wrote %d bytes\n", rc);
         }
 
-        //object->setProperty("voice_cap_time", 0);
         snd_pcm_drain(handle);
         snd_pcm_close(handle);
         free(buffer);
-        //qDebug() << "Bool property value:" << object->property("voice_cap_time").toInt();
-        qDebug() << "Ende von capture_voice()!\n";
+        //qDebug() << "Ende von capture_voice()!\n";
         close(openfd);
 }
 
 void BackendStuff::listen_msg()
 {
+    //qDebug() << "Aufruf von listen_msg()!\n";
     long loops;
-    int rc, openfd;
-    int size;
+    int rc, openfd, size, dir;
     snd_pcm_t *handle;
     snd_pcm_hw_params_t *params;
     unsigned int val;
-    int dir;
     snd_pcm_uframes_t frames;
     char *buffer;
 
@@ -509,15 +517,6 @@ void BackendStuff::listen_msg()
     /* 5 seconds in microseconds divided by period time */
     loops = 5000000 / val;
 
-    /*
-    //read in file-descriptor of audiofile
-    if( fopen("/tmp/jabra_capture.wav", "r") == NULL) {
-        printf("Error opening/creating audio sample file!\n");
-        exit(1);
-    }
-    openfd = open("/tmp/jabra_capture.wav", O_RDONLY);
-    if(openfd < 0) printf("Error opening audio sample file!\n");
-    */
     while (loops > 0) {
       loops--;
       //rc = read(0, buffer, size);	//hier fd=0 ändern um Fie direkt im Programm zu lesen anstatt per terminal einzulesen, fd=0 bedeutet "read from keyboard"
@@ -548,6 +547,8 @@ void BackendStuff::listen_msg()
         perror( "Error deleting file" );
       else
         puts( "File successfully deleted");
+
+    //qDebug() << "Ende von listen_msg()!\n";
 }
 
 void BackendStuff::disconnectClicked()
@@ -626,9 +627,7 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-
     //engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
-    //engine.load(QUrl(QStringLiteral("qrc:/frontpage.qml")));
     engine.load(QUrl(QStringLiteral("qrc:/startingpage.qml")));
     if (engine.rootObjects().isEmpty()) { return -1; }
 
