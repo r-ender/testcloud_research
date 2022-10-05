@@ -1,15 +1,20 @@
-#include <stdio.h>
-#include <poll.h>
+#include <iostream>
+#include <thread>
 #include <unistd.h>
+#include <stdio.h>
 #include <sys/socket.h>
 #include <bluetooth.h>
 #include <rfcomm.h>
 #include <fcntl.h>
 #include <stdbool.h>
+#include <poll.h>
+#include <string.h>
 
 
-int main(int argc, int *argv[])
+void bt_server()
 {
+	//puts("bt_server started!\n");
+
 	    struct sockaddr_rc loc_addr = {0};	/* local bluetooth adapter's info */
             struct sockaddr_rc client_addr;	/* filled in with remote (client) bluetooth device's info */
             char buf[1024] = { 0 };
@@ -18,7 +23,7 @@ int main(int argc, int *argv[])
             int bytes_read,server_sock, client_sock;
             socklen_t opt = sizeof(client_addr);
 
-		struct pollfd btpoll;
+	    struct pollfd btpoll;
 
             //Handy-test
             //client_addr.rc_bdaddr = (sockaddr_rc).rc_bdaddr "A4:6C:F1:08:96:B7";
@@ -32,6 +37,7 @@ int main(int argc, int *argv[])
             loc_addr.rc_bdaddr = *BDADDR_ANY;
             //loc_addr.rc_channel = RFCOMM_SERVER_PORT_NUM;	/* port number of local bluetooth adapter, here: 5 */
             loc_addr.rc_channel = (uint8_t) 1;
+
 
             if(bind(server_sock, (struct sockaddr *)&loc_addr, sizeof(loc_addr)) < 0) //accept incoming connections and reserve OS resources
             {
@@ -54,7 +60,7 @@ int main(int argc, int *argv[])
 
 		btpoll.fd = server_sock;
 		btpoll.events = POLLIN;		//tell me when ready to read
-		int num_events = poll(&btpoll, 1, 2); // wait forever, what means block?!
+		int num_events = poll(&btpoll, 1, -1); // wait forever, what means block?!
 
 		if (num_events == 0) {
 			printf("Poll timed out!\n");
@@ -63,7 +69,7 @@ int main(int argc, int *argv[])
 			 int pollin_happened = btpoll.revents & POLLIN;
 
 			 if (pollin_happened) {
-			 	printf("File descriptor %d is ready to read\n", btpoll.fd);
+			 	//printf("File descriptor %d is ready to read\n", btpoll.fd);
 
 				client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &opt);	/* return new socket for connection with a client */
 
@@ -81,7 +87,7 @@ int main(int argc, int *argv[])
 				    while( (bytes_read = read(client_sock, bt_buf,sizeof(bt_buf))) > 0 )
 				    {
 					  //qDebug() << "received "<< bt_buf << endl;
-					  printf("received: %c\n", bt_buf);
+					  //printf("received: %c\n", bt_buf);
 
 					  write(openfd, bt_buf, sizeof(bt_buf));
 
@@ -91,42 +97,47 @@ int main(int argc, int *argv[])
 					puts("no bytes received\n");
 				    }
 
+					close(openfd);
+
 			 } 
 		else {
 			 	printf("Unexpected event occurred: %d\n", btpoll.revents);
 			 }
 		}
 
-	for(int z=0; z < 30; z++)
-	{
-		printf("Wait for poll nr. %d!\n", z);
-		sleep(1);
-	}
 
-	
-            /* read data from the client */
-            memset(buf, 0, sizeof(buf));
-            //bytes_read = recv(client_sock, buf, sizeof(buf), 0);
+	//puts("bt_server finished!\n");
 
-            if( fopen("/tmp/msg_recvd.txt", "w") == NULL) printf("Error opening/creating audio sample file!\n");
-            int openfd = open("/tmp/msg_recvd.txt", O_WRONLY);
-            if(openfd < 0) printf("Error opening audio sample file!\n");
-
-            //while(!(bytes_read = recv(client_sock, bt_buf, sizeof(bt_buf), 0)))
-            while( (bytes_read = read(client_sock, bt_buf,sizeof(bt_buf))) > 0 )
-            {
-                  //qDebug() << "received "<< bt_buf << endl;
-		  printf("received: %c\n", bt_buf);
-
-                  write(openfd, bt_buf, sizeof(bt_buf));
-
-            }
-            //bytes_read = recv(client_sock, bt_buf, sizeof(bt_buf), 0);
-            if( bytes_read == 0 ) {
-                puts("no bytes received\n");
-            }
-
-            close(openfd);
-
-	    return 0;
 }
+
+
+int main()
+{
+
+
+    std::thread t(bt_server);	//create and start bt_server
+	std::string input;
+
+	std::cout << "Please parse: ";
+	std::cin >> input;
+
+	std::cout << "The first letter of input was: " << input[0] << std::endl;
+
+/*
+    for (int j=0; j<15; j++)
+    {
+    	std::cout << "main thread" << std::endl;
+	sleep(1);
+    }
+*/
+
+	//t.detach();
+	t.join();
+
+    return 0;
+}
+
+
+
+
+

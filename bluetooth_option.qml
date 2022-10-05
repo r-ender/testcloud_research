@@ -126,7 +126,7 @@ Page {
                                     anchors.topMargin: 7
                                     //anchors.right: _set_btadr.right
                                     //anchors.rightMargin: 10
-                                    text: "Set Bluetooth Address"
+                                    text: "Set Bluetooth Send-Addr."
                                     font.pixelSize: 22
                                 }
 
@@ -153,8 +153,95 @@ Page {
                                     //_afbBackend.bluetooth_test();
                                 }
                             }
-
-
                 }
-              }
 
+                    Button{
+
+                        checkable: true
+
+                        id: _accConns
+                        x: 80
+                        y: 510
+                        width: 370
+                        height: 80
+                        background:
+                            Rectangle{
+                            id: _buttonColor
+                            color: "red"
+                            border.width: 5
+                            border.color: "black"
+                        }
+
+                        Text{
+                            anchors.left: _accConns.left
+                            anchors.leftMargin: 50
+                            anchors.top: _accConns.top
+                            anchors.topMargin: 25
+                            font.pixelSize: 24
+                            text: "Bluetooth receive mode"
+                        }
+
+                        /*
+                        onToggled: {
+                            _buttonColor.color = checked ? "red" : "green";
+                        }*/
+                    }
+
+                    Rectangle{
+                            id: _rectOn
+                            color: "green"
+                            y: 590
+                            x: 80
+                            width: 185
+                            height: 40
+                            border.width: 3
+                            border.color: "black"
+
+                            Text{
+                                anchors.left: _rectOn.left
+                                anchors.top: _rectOn.top
+                                anchors.topMargin: 8
+                                anchors.leftMargin: 80
+                                text: "ON"
+                                font.pixelSize: 20
+                            }
+
+                            MouseArea{
+                                anchors.fill: parent
+                                onClicked:
+                                {
+                                    _buttonColor.color = "green";
+                                    _afbBackend.bt_recv_onoff(true);
+                                }
+                            }
+                    }
+
+                    Rectangle{
+                            id: _rectOff
+                            color: "red"
+                            y: 590
+                            x: 265
+                            width: 185
+                            height: 40
+                            border.width: 3
+                            border.color: "black"
+
+                            Text{
+                                anchors.left: _rectOff.left
+                                anchors.top: _rectOff.top
+                                anchors.topMargin: 8
+                                anchors.leftMargin: 80
+                                text: "OFF"
+                                font.pixelSize: 20
+                            }
+
+                            MouseArea{
+                                anchors.fill: parent
+                                onClicked:
+                                {
+                                    _buttonColor.color = "red";
+                                    _afbBackend.bt_recv_onoff(false);
+                                }
+                            }
+                    }
+              }
