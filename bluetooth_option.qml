@@ -12,6 +12,8 @@ import io.qt.BackendStuff 1.0
 Page {
         id: _root
 
+        //property string bt_state_color : "grey"
+
         Button{
             id: _backButton
             x:0
@@ -42,7 +44,7 @@ Page {
 
         BackendStuff {
             id: _afbBackend
-        }
+    }
 
         //SingleKey{
         HexKeyboard{
@@ -146,14 +148,31 @@ Page {
                                 enabled: true
                                 onClicked:
                                 {
-                                    //_afbBackend.sendMessage("motalk2021","ping", true);
                                     //_afbBackend.sendMessage("motalk2021","rewr",{"index":"blub"});
-                                    //_afbBackend.sendMessage("motalk2021","rewr",true);
                                     _afbBackend.BluetoothAdr = _textfield.text;
-                                    //_afbBackend.bluetooth_test();
                                 }
                             }
                 }
+
+
+                    Button {
+                        id: _roundbutton
+                        text: "reload Bth-addr."
+                        x: 420
+                        y: 70
+                        onClicked:
+                        {
+                            //_buttonColor.color = _afbBackend.BluetoothClr;
+                            _textfield.text = _afbBackend.BluetoothAdr;
+                        }
+
+                        background: Rectangle {
+                                color: "chartreuse"
+                                border.width: 3
+                                border.color: "blue"
+                                radius: 25
+                            }
+                    }
 
                     Button{
 
@@ -164,27 +183,24 @@ Page {
                         y: 510
                         width: 370
                         height: 80
+
                         background:
                             Rectangle{
-                            id: _buttonColor
-                            color: "red"
-                            border.width: 5
-                            border.color: "black"
-                        }
+                                id: _buttonColor
+                                objectName: "bt_rect"
+                                color : _afbBackend.BluetoothClr
+                                border.width: 5
+                                border.color: "black"
+                            }
 
-                        Text{
-                            anchors.left: _accConns.left
-                            anchors.leftMargin: 50
-                            anchors.top: _accConns.top
-                            anchors.topMargin: 25
-                            font.pixelSize: 24
-                            text: "Bluetooth receive mode"
-                        }
-
-                        /*
-                        onToggled: {
-                            _buttonColor.color = checked ? "red" : "green";
-                        }*/
+                            Text{
+                                anchors.left: _accConns.left
+                                anchors.leftMargin: 50
+                                anchors.top: _accConns.top
+                                anchors.topMargin: 25
+                                font.pixelSize: 24
+                                text: "Bluetooth receive mode"
+                            }
                     }
 
                     Rectangle{
@@ -197,6 +213,10 @@ Page {
                             border.width: 3
                             border.color: "black"
 
+
+
+
+
                             Text{
                                 anchors.left: _rectOn.left
                                 anchors.top: _rectOn.top
@@ -208,6 +228,7 @@ Page {
 
                             MouseArea{
                                 anchors.fill: parent
+
                                 onClicked:
                                 {
                                     _buttonColor.color = "green";

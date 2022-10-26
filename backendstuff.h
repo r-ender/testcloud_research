@@ -23,28 +23,63 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <bluetooth_wrapper.hpp>
-#include <bluetooth_recv.h>
+//#include <bluetooth_recv.h>   //cyclic dependency vermeiden
 #include <QQmlProperty>
 #include <QQuickItem>
+#include <QThread>
 
-
-#define ALSA_PCM_NEW_HW_PARAMS_API
 #include <alsa/asoundlib.h>
+#define ALSA_PCM_NEW_HW_PARAMS_API
 
-using namespace std;
+//extern std::thread btrcv2;
+//extern bool bt_bound2;
+//using namespace std;
+extern QString btaddr;
+extern bool get_btstate(void);
+extern void set_btstate(bool);
+extern QString translate_clr(void);
 
-class bluetooth_recv;
+/*
+class bluetooth_recv
+{
+    public:
+        //explicit bluetooth_recv(QObject *parent = 0);   //explicit avoids implicit conversion of type
+        bluetooth_recv();
+        //void run();
+        //void abort();
+        void bt_testloop();
 
-class BackendStuff : public QObject
+        int client_sock, server_sock;
+        //bluetooth_recv();
+
+    public slots:
+        //void bt_doWork();
+
+    signals:
+        //void start_bt_testloop();
+        //void bt_finished();
+
+    private:
+        bool _abort;    //Process is aborted when _abort true
+        bool _working;  //true when Worker is doing work
+        //QMutex mutex;   //Protects access to _abort
+};
+*/
+
+class BackendStuff : public QObject //, public bluetooth_recv
 {
     Q_OBJECT
     Q_PROPERTY(QString receiveBuffer READ getBuffer NOTIFY bufferChanged)
     Q_PROPERTY(QString UserInput READ UserInput WRITE setUserInput NOTIFY UserInputChanged)
     Q_PROPERTY(QString BluetoothAdr READ BluetoothAdr WRITE setBluetoothAdr NOTIFY BluetoothAdrChanged)
+    Q_PROPERTY(QString BluetoothClr READ BluetoothClr NOTIFY BluetoothClrChanged)
 
 public:
-    explicit BackendStuff(QObject *parent = nullptr);
+    BackendStuff(QObject *parent = nullptr);
+    //~BackendStuff();      //keinen Destruktor benutzen, sonst stürzt App ab, wenn ich page zurückgehe!
     QTcpSocket *tcpSocket;
+
+    void bt_server(void);
 
     QString getBuffer(){
         //bytesAvailable(): Returns the number of incoming bytes that are waiting to be read.
@@ -113,6 +148,10 @@ public:
             }
             qDebug() << "(in function setBluetoothAdr) setBluetoothAdr: " << m_BluetoothAdr;
 
+            //save Bluetooth-Address in global variable
+            btaddr = m_BluetoothAdr;
+
+            /*
             //write Bluetooth-Adr in file to make it persistent
             QString path = QString("/tmp/motalk_bt-address.txt"); //set filepath
             QFile file(path);
@@ -123,12 +162,24 @@ public:
             } else{
                 QTextStream out(&file); out << m_BluetoothAdr;
                 file.close();
-            }
+            } */
+        }
+    }
+
+    QString BluetoothClr() const {
+        if(get_btstate() == true)
+        {
+            return "green";
+        }
+        else
+        {
+            return "red";
         }
     }
 
     QString BluetoothAdr() const {
         //qDebug() << "BluetoothAdr getter function";
+        /*
         QString parsed_btadr;
         QString path = QString("/tmp/motalk_bt-address.txt");
         QFile file(path);
@@ -144,9 +195,9 @@ public:
 
             file.close();
         }
-
-        return parsed_btadr;
-        //return m_BluetoothAdr;
+    */
+        //return parsed_btadr;
+        return btaddr;
     }
 
     //from QAfbWebSocketClient
@@ -161,10 +212,13 @@ signals:
     void bufferChanged();
     void UserInputChanged();
     void BluetoothAdrChanged();
+    void BluetoothClrChanged();
     void speechFinished();
     void speechStarted();
     void listenFinished();
     void listenStarted();
+    //std::string bt_color(void) { return rect_clr;}
+    void bluetoothStarted();
 
     //slots make c++ methods callable from qml
 public slots:
@@ -187,7 +241,7 @@ public slots:
     void listenFinish();
     void listenStart();
     void bt_recv_onoff(bool);
-    //void bt_server(void);
+    void bluetoothStart();
 
 private slots:
     void readyRead();
@@ -197,7 +251,7 @@ private slots:
 private:    //note: private variablen könne nicht vererbt werden
     //from QAfbWebSocketClient
     int m_nextCallId, port;
-    bool tcp_status, bt_bound = false, ws_status = false;
+    bool tcp_status, ws_status = false;
 
     QMap<QString, closure_t> m_closures;
     QString host, m_receivebuffer, m_UserInput, m_BluetoothAdr;
@@ -205,19 +259,11 @@ private:    //note: private variablen könne nicht vererbt werden
     QByteArray receive_dump;
 
 public:
-    bool voice_flag;
-    bluetooth_recv *bt_rec;
+    bool voice_flag, bt_bound = false, bt_bound2 = false;
     int server_sock, client_sock;
+    std::thread btrcv;
+    std::string rect_clr = "yellow";
 };
 
-//class bluetooth_recv : public QThread, public BackendStuff
-class bluetooth_recv : public BackendStuff, public QThread
-{
-    Q_OBJECT    //tell the pre-compiler that this class needs to be run through the Meta-Object Compiler, which adds extra functions to the class
-public:
-    //explicit bluetooth_recv(QObject *parent = 0);
-    void run();
-    //bluetooth_recv();
-};
 
 #endif // BACKENDSTUFF_H
