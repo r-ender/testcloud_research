@@ -1,132 +1,60 @@
+/*
+establishing and using RFCOMM connections analog to TCP/IP programming. The only difference is that the socket addressing structures are different, and we use different functions for byte ordering of
+multibyte integers. rfcomm_server and rfcomm_client show how to establish a connection using an RFCOMM socket, transfer some data, and disconnect. 
+For simplicity, the client is hard-coded to connect to ``01:23:45:67:89:AB". 
+*/
+
 #include <stdio.h>
-#include <poll.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <bluetooth.h>
 #include <rfcomm.h>
 #include <fcntl.h>
-#include <stdbool.h>
 
-
-int main(int argc, int *argv[])
+int main(int argc, char **argv)
 {
-	    struct sockaddr_rc loc_addr = {0};	/* local bluetooth adapter's info */
-            struct sockaddr_rc client_addr;	/* filled in with remote (client) bluetooth device's info */
-            char buf[1024] = { 0 };
-            char bt_buf[80] = {0};
-	    bool bt_bound;
-            int bytes_read,server_sock, client_sock;
-            socklen_t opt = sizeof(client_addr);
+    struct sockaddr_rc loc_addr = { 0 };
+    struct sockaddr_rc rem_addr = { 0 };
+    char buf[1009] = { 0 };
+    char bt_buf[8] = {0};
+    int s, client, bytes_read;
+    socklen_t opt = sizeof(rem_addr);
 
-		struct pollfd btpoll;
+    s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);	//domain: bluetooth, type:data-stream, BT-Protocol: RFCOMM
 
-            //Handy-test
-            //client_addr.rc_bdaddr = (sockaddr_rc).rc_bdaddr "A4:6C:F1:08:96:B7";
-            //client_addr.rc_bdaddr = (bdaddr_t){0xB7, 0x96, 0x08, 0xF1, 0x6C, 0xA4};
+    // bind socket to port 1 of the first available local bluetooth adapter
+    loc_addr.rc_family = AF_BLUETOOTH; 	//specifies the addressing family of the socket
+    loc_addr.rc_bdaddr = *BDADDR_ANY;		//indicates that any local Bluetooth adapter is acceptable.
+    loc_addr.rc_channel = (uint8_t) 1;	//specify port number to connect to
+    bind(s, (struct sockaddr *)&loc_addr, sizeof(loc_addr));	// accept incoming connections with a socket, use bind to reserve operating system resource
 
-            /* allocate socket */
-            server_sock = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
+    // put socket into listening mode
+    listen(s, 1);
 
-            loc_addr.rc_family = AF_BLUETOOTH;		/* Addressing family, always AF_BLUETOOTH */
-            //bacpy(&loc_addr.rc_bdaddr, BDADDR_ANY);		/* Bluetooth address of local bluetooth adapter */
-            loc_addr.rc_bdaddr = *BDADDR_ANY;
-            //loc_addr.rc_channel = RFCOMM_SERVER_PORT_NUM;	/* port number of local bluetooth adapter, here: 5 */
-            loc_addr.rc_channel = (uint8_t) 1;
+    // accept one connection
+    client = accept(s, (struct sockaddr *)&rem_addr, &opt);	//block and accept an incoming connection
 
-            if(bind(server_sock, (struct sockaddr *)&loc_addr, sizeof(loc_addr)) < 0) //accept incoming connections and reserve OS resources
-            {
-                perror("failed to bind");
-                //exit(1);
-            } else
-            {
-                bt_bound = true;
-            }
+    ba2str( &rem_addr.rc_bdaddr, buf );
+    fprintf(stderr, "accepted connection from %s\n", buf);
+    memset(buf, 0, sizeof(buf));
 
-            /* put socket into listening mode */
-            listen(server_sock, 1);		/* backlog = 1, max length to which the queue pending connections for sockfd may grow */
+    //write buffer in file
+    int openfd;
+    uint32_t gesamt_bytesread = 0;
+    if (fopen("/tmp/jabra_cap.wav", "w") == NULL) printf("Error creating/opening receive-File!\n");
+    openfd = open("/tmp/jabra_cap.wav", O_WRONLY);
+    if (openfd < 0) printf("Error opening openfd!\n");
+    
+    //int x=0;
+    while( (bytes_read = read(client, bt_buf, sizeof(bt_buf))) > 0)
+    {
+	//printf("Im %d.Durchgang bytes_read: %d  -  insgesamt bytes_read: %d\n",x, bytes_read, (gesamt_bytesread += bytes_read));
+    	write(openfd, bt_buf, sizeof(bt_buf));
+    	//x++;
+    }
 
-            /* accept one connection */
-            fcntl(server_sock, F_SETFL, O_NONBLOCK); //set socket listen and non-blocking
-            client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &opt);	/* return new socket for connection with a client */
-
-            ba2str( &client_addr.rc_bdaddr, buf );
-
-
-		btpoll.fd = server_sock;
-		btpoll.events = POLLIN;		//tell me when ready to read
-		int num_events = poll(&btpoll, 1, 2); // wait forever, what means block?!
-
-		if (num_events == 0) {
-			printf("Poll timed out!\n");
-			 } 
-		else {
-			 int pollin_happened = btpoll.revents & POLLIN;
-
-			 if (pollin_happened) {
-			 	printf("File descriptor %d is ready to read\n", btpoll.fd);
-
-				client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &opt);	/* return new socket for connection with a client */
-
-					    ba2str( &client_addr.rc_bdaddr, buf );
-
-				/* read data from the client */
-				    memset(buf, 0, sizeof(buf));
-				    //bytes_read = recv(client_sock, buf, sizeof(buf), 0);
-
-				    if( fopen("/tmp/msg_recvd.txt", "w") == NULL) printf("Error opening/creating audio sample file!\n");
-				    int openfd = open("/tmp/msg_recvd.txt", O_WRONLY);
-				    if(openfd < 0) printf("Error opening audio sample file!\n");
-
-				    //while(!(bytes_read = recv(client_sock, bt_buf, sizeof(bt_buf), 0)))
-				    while( (bytes_read = read(client_sock, bt_buf,sizeof(bt_buf))) > 0 )
-				    {
-					  //qDebug() << "received "<< bt_buf << endl;
-					  printf("received: %c\n", bt_buf);
-
-					  write(openfd, bt_buf, sizeof(bt_buf));
-
-				    }
-				    //bytes_read = recv(client_sock, bt_buf, sizeof(bt_buf), 0);
-				    if( bytes_read == 0 ) {
-					puts("no bytes received\n");
-				    }
-
-			 } 
-		else {
-			 	printf("Unexpected event occurred: %d\n", btpoll.revents);
-			 }
-		}
-
-	for(int z=0; z < 30; z++)
-	{
-		printf("Wait for poll nr. %d!\n", z);
-		sleep(1);
-	}
-
-	
-            /* read data from the client */
-            memset(buf, 0, sizeof(buf));
-            //bytes_read = recv(client_sock, buf, sizeof(buf), 0);
-
-            if( fopen("/tmp/msg_recvd.txt", "w") == NULL) printf("Error opening/creating audio sample file!\n");
-            int openfd = open("/tmp/msg_recvd.txt", O_WRONLY);
-            if(openfd < 0) printf("Error opening audio sample file!\n");
-
-            //while(!(bytes_read = recv(client_sock, bt_buf, sizeof(bt_buf), 0)))
-            while( (bytes_read = read(client_sock, bt_buf,sizeof(bt_buf))) > 0 )
-            {
-                  //qDebug() << "received "<< bt_buf << endl;
-		  printf("received: %c\n", bt_buf);
-
-                  write(openfd, bt_buf, sizeof(bt_buf));
-
-            }
-            //bytes_read = recv(client_sock, bt_buf, sizeof(bt_buf), 0);
-            if( bytes_read == 0 ) {
-                puts("no bytes received\n");
-            }
-
-            close(openfd);
-
-	    return 0;
+    // close connection
+    close(client);
+    close(s);
+    return 0;
 }

@@ -4,12 +4,12 @@ multibyte integers. rfcomm_server and rfcomm_client show how to establish a conn
 For simplicity, the client is hard-coded to connect to ``01:23:45:67:89:AB". 
 */
 
-#include <stdio.h>
+//#include <stdio.h>
 #include <unistd.h>
 #include <sys/socket.h>
 #include <bluetooth.h>
 #include <rfcomm.h>
-#include <fcntl.h>
+
 
 int main(int argc, char **argv)
 {
@@ -55,12 +55,8 @@ int main(int argc, char **argv)
     sdp_list_t *response_list = NULL, *search_list, *attrid_list;
     sdp_session_t *session = 0;	//a session with a SDP server
 	*/
-	
     struct sockaddr_rc addr2 = { 0 };
-    int s, status, size;
-    int rc, openfd;
-    char *buffer;
-    
+    int s, status;
     //char dest[18] = "78:00:9E:8A:A6:0F"; //"CC:3D:82:39:9B:61";	// "01:23:45:67:89:AB";
 
     s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);	////domain: bluetooth, type:data-stream, BT-Protocol: RFCOMM
@@ -69,31 +65,10 @@ int main(int argc, char **argv)
     addr2.rc_family = AF_BLUETOOTH;
     addr2.rc_channel = (uint8_t) 1;
     //str2ba( addr, &addr2.rc_bdaddr );	//convert string to bt-adress
-    str2ba("A8:6D:AA:B0:2D:49", &addr2.rc_bdaddr );
+    str2ba("CC:3D:82:39:9B:61", &addr2.rc_bdaddr );
 
     status = connect(s, (struct sockaddr *)&addr2, sizeof(addr2));	//connect to server
     puts("connect\n");
-
-/*
-	//send voice message
-	//read in file-descriptor of audiofile
-    if( fopen("/tmp/jabra_cap.wav", "r") == NULL) {
-    	//if( fopen("/tmp/Phone_Ringing.wav", "r") == NULL) {
-        printf("Error opening/creating audio sample file!\n");
-        exit(1);
-    }
-    //openfd = open("/tmp/Phone_Ringing.wav", O_RDONLY);
-    openfd = open("/tmp/jabra_cap.wav", O_RDONLY);
-    if(openfd < 0) printf("Error opening audio sample file!\n");
-    
-    size = 44400*4;
-    rc = read(openfd, buffer, size);
-    if(status == 0)
-    {
-    	status = write(s,buffer,size);
-    }
-    if( status < 0 ) perror("uh oh");
-*/
 
     // send  message
     if( status == 0 ) {
