@@ -1,11 +1,6 @@
 #ifndef BACKENDSTUFF_H
 #define BACKENDSTUFF_H
 
-#include <QGuiApplication>
-#include <QQmlApplicationEngine>
-#include <QQmlContext>
-#include <QQuickView>
-#include <QQmlComponent>
 #include <QObject>
 #include <QString>
 #include <QTcpSocket>
@@ -23,21 +18,19 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <bluetooth_wrapper.hpp>
-//#include <bluetooth_recv.h>   //cyclic dependency vermeiden
 #include <QQmlProperty>
 #include <QQuickItem>
-#include <QThread>
+//#include <QThread>
 
 #include <alsa/asoundlib.h>
 #define ALSA_PCM_NEW_HW_PARAMS_API
 
-//extern std::thread btrcv2;
-//extern bool bt_bound2;
-//using namespace std;
+extern bool bth_msg_recvd;
 extern QString btaddr;
 extern bool get_btstate(void);
 extern void set_btstate(bool);
-extern QString translate_clr(void);
+extern uint8_t rfcomm_bth_portnr;
+//extern QString translate_clr(void);
 
 /*
 class bluetooth_recv
@@ -73,6 +66,7 @@ class BackendStuff : public QObject //, public bluetooth_recv
     Q_PROPERTY(QString UserInput READ UserInput WRITE setUserInput NOTIFY UserInputChanged)
     Q_PROPERTY(QString BluetoothAdr READ BluetoothAdr WRITE setBluetoothAdr NOTIFY BluetoothAdrChanged)
     Q_PROPERTY(QString BluetoothClr READ BluetoothClr NOTIFY BluetoothClrChanged)
+    Q_PROPERTY(bool Bth_msg_recv READ Bth_msg_recv NOTIFY Bth_msg_recvChanged)
 
 public:
     BackendStuff(QObject *parent = nullptr);
@@ -166,6 +160,17 @@ public:
         }
     }
 
+    bool Bth_msg_recv() const {
+        if( bth_msg_recvd == true)
+        {
+            return(true);
+        }
+        else
+        {
+            return (false);
+        }
+    }
+
     QString BluetoothClr() const {
         if(get_btstate() == true)
         {
@@ -208,7 +213,6 @@ public:
 signals:
     void someError(QString err);
     void statusChanged2(bool);
-    void hasReadSome(QString msg);
     void bufferChanged();
     void UserInputChanged();
     void BluetoothAdrChanged();
@@ -217,8 +221,8 @@ signals:
     void speechStarted();
     void listenFinished();
     void listenStarted();
-    //std::string bt_color(void) { return rect_clr;}
     void bluetoothStarted();
+    void Bth_msg_recvChanged();
 
     //slots make c++ methods callable from qml
 public slots:
@@ -231,13 +235,12 @@ public slots:
     void disconnectClicked();
     void closeConnection();
     void connect2host();
-    //bluetooth-test
-    void bluetooth_test();
+    void bth_usage();   // former: bluetooth_test
     void bt_voice_send();
     void capture_voice();
     void listen_msg();
-    void teststart();
-    void testfinish();
+    void speechstart();   // --> former teststart
+    void speechfinish();  // --> former testfinish
     void listenFinish();
     void listenStart();
     void bt_recv_onoff(bool);
@@ -252,17 +255,13 @@ private:    //note: private variablen könne nicht vererbt werden
     //from QAfbWebSocketClient
     int m_nextCallId, port;
     bool tcp_status, ws_status = false;
-
+    bool voice_flag, bt_bound = false, bt_bound2 = false;
     QMap<QString, closure_t> m_closures;
     QString host, m_receivebuffer, m_UserInput, m_BluetoothAdr;
     QTimer *timeoutTimer;
     QByteArray receive_dump;
-
-public:
-    bool voice_flag, bt_bound = false, bt_bound2 = false;
     int server_sock, client_sock;
     std::thread btrcv;
-    std::string rect_clr = "yellow";
 };
 
 

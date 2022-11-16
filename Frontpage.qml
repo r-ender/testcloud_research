@@ -15,6 +15,17 @@ Page {
             verticalAlignment: Text.AlignVCenter
         }
 
+        BackendStuff{
+            id: _afbBackend
+
+            /*
+            onBth_msg_recvChanged:
+            {
+                //_msg_notification.visible = true;
+                _rect2.color = "yellow"
+            }*/
+        }
+
             Image {
                     id: _backgroundFreq
                     width: parent.width
@@ -22,7 +33,6 @@ Page {
                     source: "background_frequency.jpg"
                     fillMode: Image.Tile; opacity: 0.3
             }
-
 
             ListView{
                     id: _listView
@@ -44,7 +54,6 @@ Page {
                             border.width: 5
                             border.color: "black"
 
-
                             Image {
                                 id: _avatar_keyboard
                                 sourceSize.width: 200
@@ -61,10 +70,10 @@ Page {
                             Text{
                                 anchors.right: _rect1.right
                                 anchors.top: _rect1.top
-                                anchors.topMargin: 40
-                                anchors.rightMargin: 80
+                                anchors.topMargin: 35
+                                anchors.rightMargin: 30
                                 text: "Choose type-option"
-                                font.pixelSize: 20
+                                font.pixelSize: 26
                             }
 
                             MouseArea{
@@ -73,6 +82,7 @@ Page {
                                     //items that StackView creates from Components or URLs are destroyed by the StackView.pop()
                             }
                     }
+
 
                     Rectangle{
                             id: _rect2
@@ -87,7 +97,7 @@ Page {
                             Image {
                                 id: _avatar_voice
                                 anchors.left: _rect2.left
-                                anchors.leftMargin: 50
+                                anchors.leftMargin: 40
                                 anchors.top: _rect2.top
                                 anchors.topMargin: 7
                                 anchors.bottom: _rect2.bottom
@@ -100,11 +110,30 @@ Page {
                             Text{
                                 anchors.right: _rect2.right
                                 anchors.top: _rect2.top
-                                anchors.topMargin: 40
-                                anchors.rightMargin: 55
+                                anchors.topMargin: 35
+                                anchors.rightMargin: 40
                                 text: "Choose speech-option"
-                                font.pixelSize: 20
+                                font.pixelSize: 28
                             }
+
+                            /*
+                            Button {
+                                id: _msg_notification
+                                visible: _afbBackend.Bth_msg_recv
+                                anchors.right: _rect2.right
+                                anchors.top: _rect2.top
+                                anchors.rightMargin: 10
+                                anchors.topMargin: -20
+
+                                background: Rectangle {
+                                        width: (parent.width<parent.height?parent.width:parent.height)*3
+                                        height: width
+                                        color: "red"
+                                        border.width: 1
+                                        border.color: "red"
+                                        radius: width*0.5
+                                    }
+                            } */
 
                             MouseArea{
                                 anchors.fill: parent
@@ -113,10 +142,10 @@ Page {
                             }
                     }
 
-                    //bloß für Bluetooth-test
-                    BackendStuff {
-                        id: _afbBackend
-                    }
+                    //für Bluetooth-usage
+                    //BackendStuff {
+                      //  id: _afbBackend
+                    //}
 
                     Rectangle{
                         id: _rect3
@@ -144,10 +173,10 @@ Page {
                         Text{
                             anchors.right: _rect3.right
                             anchors.top: _rect3.top
-                            anchors.topMargin: 40
-                            anchors.rightMargin: 55
-                            text: "Bluetooth Address"
-                            font.pixelSize: 20
+                            anchors.topMargin: 35
+                            anchors.rightMargin: 75
+                            text: "Bluetooth Settings"
+                            font.pixelSize: 28
                         }
 
                         MouseArea{

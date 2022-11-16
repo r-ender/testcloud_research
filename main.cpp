@@ -1,34 +1,14 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
-#include <QQmlContext>
-#include <QQuickView>
-#include <QQmlComponent>
 #include <QObject>
 #include <QString>
-#include <QTcpSocket>
 #include <QDataStream>
-#include <QTimer>
-#include <QJsonValue>
-#include <QJsonObject>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <fstream>
-#include <iostream>
-#include <cstdio>
-#include <string>
-#include <thread>
-#include <stdio.h>
-#include <unistd.h>
-#include <bluetooth_wrapper.hpp>
-//#include <bluetooth_recv.h>
-#include <QQmlProperty>
-#include <QQuickItem>
 #include <backendstuff.h>
 
-//extern std::thread btrcv2;
-//extern bool bt_bound2;
-extern bool bt_portnum;
+
+uint8_t rfcomm_bth_portnr = 0;
 bool bt_bound2 = false;
+bool bth_msg_recvd = false;
 QString btaddr;
 
 void set_btstate(bool x)
@@ -66,16 +46,6 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
 
-    //BackendStuff x;
-    //btrcv2 = std::thread{&BackendStuff::bt_server,&x};
-    //btrcv2.detach();
-
-    //engine.rootContext()->setContextProperty(translate_clr(), "bt_state_color");
-    //QQuickView view;
-    //view.rootContext()->setContextProperty("bt_state_color",translate_clr());
-
-    //engine.rootContext()->setContextProperty("bt_state_color", translate_clr());
-    //engine.load(QUrl(QStringLiteral("qrc:/main.qml")));
     engine.load(QUrl(QStringLiteral("qrc:/startingpage.qml")));
     if (engine.rootObjects().isEmpty()) { return -1; }
 

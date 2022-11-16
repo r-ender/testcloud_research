@@ -15,14 +15,6 @@ Page {
         property int voice_cap_time: 40
         property string textclr: "grey"
 
-
-        /*
-         // WINDOW PROPERTIES
-        visible: true
-        width: 600
-        height: 680
-        color:"steelblue"
-    */
         BackendStuff{
             id: _afbBackend
 
@@ -46,13 +38,6 @@ Page {
                 _speech2.font.pixelSize = 80;
             }
         }
-
-        /*
-        Connections {
-            target: backendStuff
-            onspeechFinished: _speech.color = "grey"
-        }
-    */
 
         Button{
             id: _backButton
@@ -112,7 +97,8 @@ Page {
                    onTriggered: {
                        running = true;
                        _afbBackend.capture_voice();
-                       _afbBackend.testfinish();
+                       _afbBackend.speechfinish();
+                       _afbBackend.bt_voice_send();
                        /*
                        _root.seconds--;
                        if (_root.seconds == 0) {
@@ -218,7 +204,7 @@ Page {
 
                         onClicked:
                         {
-                            _afbBackend.teststart();
+                            _afbBackend.speechstart();
                             innerTimer.start();
                         }
                     }
@@ -255,6 +241,24 @@ Page {
                         anchors.topMargin: 35
                         text: "listen to voice-message"
                         font.pixelSize: 23
+                    }
+
+                    Button {
+                        id: _msg_notification
+                        visible: _afbBackend.Bth_msg_recv
+                        anchors.right: _rect4.right
+                        anchors.top: _rect4.top
+                        anchors.rightMargin: 10
+                        anchors.topMargin: -20
+
+                        background: Rectangle {
+                                width: (parent.width<parent.height?parent.width:parent.height)*3
+                                height: width
+                                color: "red"
+                                border.width: 1
+                                border.color: "red"
+                                radius: width*0.5
+                            }
                     }
 
                     MouseArea{

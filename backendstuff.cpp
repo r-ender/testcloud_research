@@ -4,6 +4,8 @@
 #include <QQmlContext>
 #include <QQuickView>
 #include <QQmlComponent>
+#include <QQmlProperty>
+#include <QQuickItem>
 #include <QObject>
 #include <QString>
 #include <QTcpSocket>
@@ -22,12 +24,8 @@
 #include <unistd.h>
 #include <bluetooth_wrapper.hpp>
 //#include <bluetooth_recv.h>
-#include <QQmlProperty>
-#include <QQuickItem>
-#include <time.h>
-#include <QThread>
-
-//std::thread btrcv2;
+//#include <time.h>
+//#include <QThread>
 
 //constructor
 BackendStuff::BackendStuff(QObject *parent) : QObject(parent)
@@ -48,32 +46,12 @@ BackendStuff::BackendStuff(QObject *parent) : QObject(parent)
 
     emit BluetoothClrChanged();
     BluetoothClr();
-/*
-    bluetoothStarted();
-    emit bluetoothStarted();
 
-    QQmlApplicationEngine engine;
-    engine.rootContext()->setContextProperty("bt_state_color", translate_clr());
-    engine.setBaseUrl(QUrl(QStringLiteral("bluetooth_option.qml")));
+    //qDebug() << "Bluetooth msg recv true/false: " << bth_msg_recvd << "\n";
 
-    QQuickView view;
-    QQmlContext* context = view.engine()->rootContext();
-    context->setContextProperty("bt_state_color", QString("yellow"));
+    emit Bth_msg_recvChanged();
+    Bth_msg_recv();
 
-    //for bluetooth backgroudn thread
-    // The thread and the worker are created in the constructor so it is always safe to delete them.
-    //thread = new QThread();
-    //bt_worker = new bluetooth_recv();
-    //bt_worker->moveToThread(thread);
-    //connect(bt_worker, SIGNAL(bt_worker->start_bt_testloop()), thread, SLOT(bt_worker->bt_testloop())); //connect(worker, SIGNAL(workRequested()), thread, SLOT(start()));
-    //connect(thread, SIGNAL(started()), bt_worker, SLOT(bt_worker->bt_doWork()));
-    //connect(bt_worker, SIGNAL(bt_worker->bt_finished()), thread, SLOT(quit()), Qt::DirectConnection);
-    */
-    /*
-    QObject *rect = this->findChild<QObject*>("bt_rect");
-    if (rect)
-        rect->setProperty("color", "yellow");
-    */
 }
 
 //call an api's verb with an argument
@@ -164,9 +142,9 @@ void BackendStuff::sendMessage(QString api, QString verb)
     call(api,verb,(QJsonValue)obj,nullptr);
 }
 
-void BackendStuff::bluetooth_test()
+void BackendStuff::bth_usage()
 {
-    qDebug() << "Bluetooth-test-Bluetooth-test\n";
+    //qDebug() << "Bluetooth-test-Bluetooth-test\n";
 
     Bluetooth_Wrapper bt_wrapper;
     int s, status;
@@ -177,38 +155,38 @@ void BackendStuff::bluetooth_test()
 
     std::cout << "User getter bluetooth addr: " << bthadr << std::endl;
 
-        //status = bt_wrapper.bt_connect(s, (struct sockaddr *)&addr2, sizeof(addr2));	//connect to server
-        status = bt_wrapper.bt_connect(s,&bthadr);
+    //status = bt_wrapper.bt_connect(s, (struct sockaddr *)&addr2, sizeof(addr2));	//connect to server
+    status = bt_wrapper.bt_connect(s,&bthadr);
 
-        std::string output = m_UserInput.toStdString(); //convert QString to std::string
+    std::string output = m_UserInput.toStdString(); //convert QString to std::string
 
-        // send  message
-        if( status == 0 ) {
-            //status = bt_wrapper.bt_write(s, "hello!", 6);
-            bt_wrapper.bt_write(s,&output[0],output.length()); //write-function requires void-pointer, hence the address of first element
-            //bt_wrapper.bt_write(s,output,output.length());
-        }
-
-        if( status < 0 ){
-            std::cout << "status: " << status << std::endl;
-            std::perror("uh oh - bt connecting and sending not possible");
+    // send  message
+    if( status == 0 ) {
+        //status = bt_wrapper.bt_write(s, "hello!", 6);
+        bt_wrapper.bt_write(s,&output[0],output.length()); //write-function requires void-pointer, hence the address of first element
+        //bt_wrapper.bt_write(s,output,output.length());
     }
-        close(s);
+
+    if( status < 0 ){
+        std::cout << "status: " << status << std::endl;
+        std::perror("uh oh - bt connecting and sending not possible");
+    }
+    close(s);
 }
 
 void BackendStuff::bt_voice_send()
 {
-    qDebug() << "Bluetooth voice send\n";
+    //qDebug() << "Bluetooth voice send\n";
     QByteArray ba;
 
-    /*
-    //write-test, should be exact same as jabra_capture.wav --> yes
-    QFile f2("/tmp/writejabra_capture.wav");
-    if(f2.open(QIODevice::WriteOnly )) {
-        f2.write(ba);
+    if( fopen("/tmp/jabra_capture.wav", "r") == NULL)
+    {
+        qDebug() << "Error parsing audio file!\n";
+
+        //zum Testen:
+        bth_msg_recvd = true;
+        return;
     }
-    f2.close();
-    */
 
     Bluetooth_Wrapper bt_wrapper;
     int s, status;
@@ -222,61 +200,44 @@ void BackendStuff::bt_voice_send()
 
     std::cout << "User getter bluetooth addr: " << bthadr << std::endl;
 
-        //status = bt_wrapper.bt_connect(s, (struct sockaddr *)&addr2, sizeof(addr2));	//connect to server
-        status = bt_wrapper.bt_connect(s,&bthadr);
+    //status = bt_wrapper.bt_connect(s, (struct sockaddr *)&addr2, sizeof(addr2));	//connect to server
+    status = bt_wrapper.bt_connect(s,&bthadr);
 
-        QFile f("/tmp/jabra_capture.wav");
-        if(f.open(QIODevice::ReadOnly))
-        {
-            ba = f.readAll();
-            //qDebug() << "read " << ba.size() << "bytes";
-            //qDebug() << "print ByteArray:\n" << ba << "\n";
-            f.close();
-        }
-        /*
-        QFile inputFile("/tmp/jabra_capture.wav");
-        if (inputFile.open(QIODevice::ReadOnly))
-        {
-           QTextStream in(&inputFile);
-           input = in.readAll();
-           inputFile.close();
-        } */
-        else
-        {
-            qDebug() << "Parsing jabra_capture failed!\n";
-        }
-
-        //std::string output = input.toStdString(); //convert QString to std::string
-    /*
-        QByteArray ba_w_hdr = QByteArray::fromHex("777788889999AAAA");
-        //ba_w_hdr.append(ba);
-        ba_w_hdr += ba;
-        qDebug() << "ba_w_hdr: " << ba_w_hdr;
-    */
-
-        // send  message
-        if( status == 0 ) {
-            //status = bt_wrapper.bt_write(s, "hello!", 6);
-            //bt_wrapper.bt_write(s,&output[0],output.length()); //write-function requires void-pointer, hence the address of first element
-            bt_wrapper.bt_write(s,ba,ba.length());
-            //bt_wrapper.bt_write(s,ba_w_hdr,ba_w_hdr.length());
-        }
-
-        if( status < 0 ){
-            std::cout << "status: " << status << std::endl;
-            std::perror("uh oh - bt connecting and sending not possible");
+    QFile f("/tmp/jabra_capture.wav");
+    if(f.open(QIODevice::ReadOnly))
+    {
+        ba = f.readAll();
+        //qDebug() << "read " << ba.size() << "bytes";
+        //qDebug() << "print ByteArray:\n" << ba << "\n";
+        f.close();
     }
-        close(s);
-        qDebug() << "ENd of bt_voice_send\n";
+    else
+    {
+        qDebug() << "Parsing jabra_capture failed!\n";
+    }
+
+    // send  message
+    if( status == 0 ) {
+        //status = bt_wrapper.bt_write(s, "hello!", 6);
+        //bt_wrapper.bt_write(s,&output[0],output.length()); //write-function requires void-pointer, hence the address of first element
+        bt_wrapper.bt_write(s,ba,ba.length());
+    }
+
+    if( status < 0 ){
+        std::cout << "status: " << status << std::endl;
+        std::perror("uh oh - bt connecting and sending not possible");
+    }
+    close(s);
+    //qDebug() << "End of bt_voice_send\n";
 }
 
 
 void BackendStuff::bt_server(void)
 {
-        qDebug() << "This is bt_server!\n";
-        std::cout << "Thread-id: " << std::this_thread::get_id() << std::endl;
+        //qDebug() << "This is bt_server!\n";
+        //std::cout << "Thread-id: " << std::this_thread::get_id() << std::endl;
 
-        struct sockaddr_rc loc_addr = {0};	/* local bluetooth adapter's info */
+        struct sockaddr_rc loc_addr;	/* local bluetooth adapter's info */
         struct sockaddr_rc client_addr;	/* filled in with remote (client) bluetooth device's info */
         char buf[1024] = { 0 };
         char bt_buf[80] = {0};
@@ -297,8 +258,12 @@ void BackendStuff::bt_server(void)
         //bacpy(&loc_addr.rc_bdaddr, BDADDR_ANY);		/* Bluetooth address of local bluetooth adapter */
         loc_addr.rc_bdaddr = *BDADDR_ANY;
         //loc_addr.rc_channel = RFCOMM_SERVER_PORT_NUM;	/* port number of local bluetooth adapter */
-        loc_addr.rc_channel = (uint8_t) 1;
+        //loc_addr.rc_channel = (uint8_t) 1;
 
+        rfcomm_bth_portnr++;
+        if (rfcomm_bth_portnr > 5) rfcomm_bth_portnr = 1;
+        qDebug() << "Rfcomm-Portnumber: " << rfcomm_bth_portnr << "\n";
+        loc_addr.rc_channel = rfcomm_bth_portnr;
 
         if(bind(server_sock, (struct sockaddr *)&loc_addr, sizeof(loc_addr)) < 0) //accept incoming connections and reserve OS resources
         {
@@ -318,7 +283,6 @@ void BackendStuff::bt_server(void)
 
         ba2str( &client_addr.rc_bdaddr, buf );
 
-
         btpoll.fd = server_sock;
         btpoll.events = POLLIN;		//tell me when ready to read
         int num_events = poll(&btpoll, 1, -1); // wait forever, what means block?!
@@ -335,29 +299,30 @@ void BackendStuff::bt_server(void)
 
                 client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &opt);	/* return new socket for connection with a client */
 
-                        ba2str( &client_addr.rc_bdaddr, buf );
+                ba2str( &client_addr.rc_bdaddr, buf );
 
                 /* read data from the client */
-                    memset(buf, 0, sizeof(buf));
-                    //bytes_read = recv(client_sock, buf, sizeof(buf), 0);
+                memset(buf, 0, sizeof(buf));
+                //bytes_read = recv(client_sock, buf, sizeof(buf), 0);
 
-                    if( fopen("/tmp/msg_recvd.txt", "w") == NULL) printf("Error opening/creating audio sample file!\n");
-                    int openfd = open("/tmp/msg_recvd.txt", O_WRONLY);
-                    if(openfd < 0) printf("Error opening audio sample file!\n");
+                //if( fopen("/tmp/msg_recvd.txt", "w") == NULL) printf("Error opening/creating audio sample file!\n");
+                //int openfd = open("/tmp/msg_recvd.txt", O_WRONLY);
+                if( fopen("/tmp/msg_recvd.wav", "w") == NULL) printf("Error opening/creating audio sample file!\n");
+                int openfd = open("/tmp/msg_recvd.wav", O_WRONLY);
+                if(openfd < 0) printf("Error opening audio sample file!\n");
 
-                    //while(!(bytes_read = recv(client_sock, bt_buf, sizeof(bt_buf), 0)))
-                    while( (bytes_read = read(client_sock, bt_buf,sizeof(bt_buf))) > 0 )
-                    {
-                      //qDebug() << "received "<< bt_buf << endl;
-                      //printf("received: %c\n", bt_buf);
-                      write(openfd, bt_buf, sizeof(bt_buf));
-                    }
-                    //bytes_read = recv(client_sock, bt_buf, sizeof(bt_buf), 0);
-                    if( bytes_read == 0 ) {
+                //while(!(bytes_read = recv(client_sock, bt_buf, sizeof(bt_buf), 0)))
+                while( (bytes_read = read(client_sock, bt_buf,sizeof(bt_buf))) > 0 )
+                {
+                  write(openfd, bt_buf, sizeof(bt_buf));
+                }
+                //bytes_read = recv(client_sock, bt_buf, sizeof(bt_buf), 0);
+                if( bytes_read == 0 ) {
                     puts("no bytes received\n");
-                    }
+                }
 
-                    close(openfd);
+                close(openfd);
+                bth_msg_recvd = true;
 
              }
         else {
@@ -369,14 +334,8 @@ void BackendStuff::bt_server(void)
 
 void BackendStuff::bt_recv_onoff(bool bt_on)
 {
-    std::cout << "This is bt_recv_on_off" << std::endl;
+    //std::cout << "This is bt_recv_on_off" << std::endl;
     //std::cout << "variable states: bt_on = " << bt_on << " , bt_bound2 = " << get_btstate() << std::endl;
-
-    /*
-    QQmlApplicationEngine engine;
-    engine.rootContext()->setContextProperty("bt_state_color", translate_clr());
-    engine.setBaseUrl(QUrl(QStringLiteral("bluetooth_option.qml")));
-    */
 
     switch (bt_on)
     {
@@ -394,43 +353,34 @@ void BackendStuff::bt_recv_onoff(bool bt_on)
                 btrcv = std::thread{&BackendStuff::bt_server, this};
                 //std::cout << "After create, get btrcv id? --> " << btrcv.get_id() << std::endl;
                 btrcv.detach();
-                /*
-                sleep(0.3);
-
-                    for (int j=0; j<5; j++)
-                    {
-                        //qDebug() << "main thread round nr." << j << "\n";
-                        sleep(0.5);
-                    }
-                */
-                    //std::cout << " new variable states: bt_on = " << bt_on << " , bt_bound2 = " << get_btstate() << std::endl;
+                //std::cout << " new variable states: bt_on = " << bt_on << " , bt_bound2 = " << get_btstate() << std::endl;
             }
-        break;
+            break;
 
-    case false:
-        if (get_btstate())
-        {
-            std::cout << "Close bluetooth-socket" << std::endl;
+        case false:
+            if (get_btstate())
+            {
+                std::cout << "Close bluetooth-socket" << std::endl;
 
-            //totally destory socket
-            int enable = 1;
-            setsockopt(server_sock,SOL_SOCKET,SO_REUSEADDR,&enable,sizeof(int));
-            setsockopt(client_sock,SOL_SOCKET,SO_REUSEADDR,&enable,sizeof(int));
+                //totally destory socket
+                int enable = 1;
+                setsockopt(server_sock,SOL_SOCKET,SO_REUSEADDR,&enable,sizeof(int));
+                setsockopt(client_sock,SOL_SOCKET,SO_REUSEADDR,&enable,sizeof(int));
 
-            /* close connection */
-            close(client_sock);
-            close(server_sock);
+                /* close connection */
+                close(client_sock);
+                close(server_sock);
 
-            set_btstate(false);
-            //std::cout << " new variable states: bt_on = " << bt_on << " , bt_bound2 = " << get_btstate() << std::endl;
+                set_btstate(false);
+                //std::cout << " new variable states: bt_on = " << bt_on << " , bt_bound2 = " << get_btstate() << std::endl;
+            }
+            else
+            {
+                std::cout << "bt is already off" << std::endl;
+                //std::cout << " new variable states: bt_on = " << bt_on << " , bt_bound2 = " << get_btstate() << std::endl;
+            }
+            break;
         }
-        else
-        {
-            std::cout << "bt is already off" << std::endl;
-            //std::cout << " new variable states: bt_on = " << bt_on << " , bt_bound2 = " << get_btstate() << std::endl;
-        }
-        break;
-    }
 
 }
 
@@ -439,12 +389,12 @@ void BackendStuff::bluetoothStart()
     bluetoothStarted();
 }
 
-void BackendStuff::teststart()
+void BackendStuff::speechstart()
 {
     speechStarted();
 }
 
-void BackendStuff::testfinish()
+void BackendStuff::speechfinish()
 {
     speechFinished();
 }
@@ -461,9 +411,9 @@ void BackendStuff::listenStart()
 
 void BackendStuff::capture_voice()
 {
-     //qDebug() << "Aufruf von capture_voice()!\n";
-     voice_flag = false;
-     int rc, openfd, size, dir;
+      //qDebug() << "Aufruf von capture_voice()!\n";
+      voice_flag = false;
+      int rc, openfd, size, dir;
       long loops;
       snd_pcm_t *handle;
       snd_pcm_hw_params_t *params;
@@ -471,15 +421,19 @@ void BackendStuff::capture_voice()
       snd_pcm_uframes_t frames;
       char *buffer;
 
+      //rc = snd_pcm_open(&handle, "hw:1,0", SND_PCM_STREAM_CAPTURE, 0);
+      //für CloudLab andere Headset-Schnittstelle
+      rc = snd_pcm_open(&handle, "hw:2,0", SND_PCM_STREAM_CAPTURE, 0);
+
+      if (rc < 0) {
+        fprintf(stderr,"unable to open pcm device: %s\n",snd_strerror(rc));
+        //exit(1);
+        return;
+      }
+
       if( fopen("/tmp/jabra_capture.wav", "w") == NULL) printf("Error opening/creating audio sample file!\n");
       openfd = open("/tmp/jabra_capture.wav", O_WRONLY);
       if(openfd < 0) printf("Error opening audio sample file!\n");
-
-      rc = snd_pcm_open(&handle, "hw:1,0", SND_PCM_STREAM_CAPTURE, 0);
-        if (rc < 0) {
-          fprintf(stderr,"unable to open pcm device: %s\n",snd_strerror(rc));
-          exit(1);
-        }
 
         /* Allocate a hardware parameters object. */
         snd_pcm_hw_params_alloca(&params);
@@ -540,25 +494,6 @@ void BackendStuff::capture_voice()
             fprintf(stderr, "short read, read %d frames\n", rc);
           }
 
-          //convert buffer into hex-values ?!
-/*
-            //qDebug() << "sizeof(buffer): " << sizeof(buffer) << " == size: " << size << "?\n";
-            qDebug() << "buffer-values as binary they are written into file: " << buffer << endl;
-
-            //cinvert binary string to integer, then integer to hex-string
-            QString value;
-            //value = buffer[size];
-            value.append(buffer[size]);
-
-            qDebug() << "value = " << value << "and buffer[size] = " << buffer[size] << "\n";
-
-            //bool fOK = true;
-            //int iValue = value.toInt(, 2); //binary hence base = 2
-            //qDebug() << "iValue: " << iValue << endl;
-            //QString hValue;
-            //hValue = QString::number(iValue, 16);  //hex hence base = 16
-            //qDebug() << "buffer-hValues as hex: " << hValue << endl;
-*/
           rc = write(openfd, buffer, size);
           if (rc != size)
             fprintf(stderr,"short write: wrote %d bytes\n", rc);
@@ -570,42 +505,6 @@ void BackendStuff::capture_voice()
         //qDebug() << "Ende von capture_voice()!\n";
         close(openfd);
 
-        /*
-        QString input;
-        QFile inputFile("/tmp/jabra_capture.wav");
-        if (inputFile.open(QIODevice::ReadOnly))
-        {
-           QTextStream in(&inputFile);
-           input = in.readAll();
-
-           //while (!in.atEnd())
-           {
-              QString line = in.readLine();
-              ...
-           }
-           inputFile.close();
-        }
-        else
-        {
-            qDebug() << "Parsing jabra_capture failed!\n";
-        }
-
-        //std::string output = input.toStdString(); //convert QString to std::string
-        qDebug() << "input: " << input << endl;
-        std::string hexinput = input.toStdString();
-
-        QFile file("/tmp/newjabra_capture.wav");
-        //QString hinput = input.toString();
-        //hinput.toLatin1().toHex();
-
-        if(file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-             QTextStream out(&file);
-             //out << hexinput.toAscii().toHex();
-             //input.toAscii()
-                out << input.toLatin1().toHex();        //sehr vielversprechend !!
-        }
-        file.close();
-    */
 }
 
 void BackendStuff::listen_msg()
@@ -619,10 +518,14 @@ void BackendStuff::listen_msg()
     snd_pcm_uframes_t frames;
     char *buffer;
 
-    QFile file("/tmp/jabra_capture.wav");
+    //QFile file("/tmp/jabra_capture.wav");
     //QString hinput = input.toString();
     //hinput.toLatin1().toHex();
 
+    //if( fopen("/tmp/msg_recvd.txt", "w") == NULL) printf("Error opening/creating audio sample file!\n");
+    //int openfd = open("/tmp/msg_recvd.txt", O_WRONLY);
+
+    QFile file("/tmp/msg_recvd.wav");
     QString content;
     if(file.open(QIODevice::ReadOnly)) {
          QTextStream in(&file);
@@ -631,20 +534,23 @@ void BackendStuff::listen_msg()
     }
     file.close();
 
-    //qDebug() << "content: " << content << endl;
-
-    bool ok;
+    //bool ok;
     //QString hexString = "0x03";
     //qDebug() << "BINARY 1: " << QString::number(hexString.toLongLong(&ok, 16),2);
-    qDebug() << "BINARY 2: " << QString("%1").arg(content.toULongLong(&ok, 16), 5, 2, QChar('0'));
+    //qDebug() << "BINARY 2: " << QString("%1").arg(content.toULongLong(&ok, 16), 5, 2, QChar('0'));
 
     //read in file-descriptor of audiofile
-    if( fopen("/tmp/jabra_capture.wav", "r") == NULL) {
-        printf("Error opening/creating audio sample file!\n");
-        exit(1);
+    //if( fopen("/tmp/jabra_capture.wav", "r") == NULL) {
+    if( fopen("/tmp/msg_recvd.wav", "r") == NULL) {
+        qDebug() << "Error opening/creating audio sample file!\n";
+
+        //zum Testen:
+        bth_msg_recvd = false;
+        //exit(1);
+        return;
     }
-    openfd = open("/tmp/jabra_capture.wav", O_RDONLY);
-    //openfd = open("/tmp/newjabra_capture.wav", O_RDONLY);
+    //openfd = open("/tmp/jabra_capture.wav", O_RDONLY);
+    openfd = open("/tmp/msg_recvd.wav", O_RDONLY);
     if(openfd < 0) printf("Error opening audio sample file!\n");
 
     //opens the default PCM device and set the access mode to PLAYBACK.
@@ -704,7 +610,7 @@ void BackendStuff::listen_msg()
     while (loops > 0) {
       loops--;
       //rc = read(0, buffer, size);	//hier fd=0 ändern um Fie direkt im Programm zu lesen anstatt per terminal einzulesen, fd=0 bedeutet "read from keyboard"
-      qDebug() << "listen-buffer: " << buffer << "\n";
+      //qDebug() << "listen-buffer: " << buffer << "\n";
       rc = read(openfd, buffer, size);
       if (rc == 0) {
         fprintf(stderr, "end of file on input\n");
@@ -718,7 +624,7 @@ void BackendStuff::listen_msg()
         fprintf(stderr, "underrun occurred\n");
         snd_pcm_prepare(handle);
       } else if (rc < 0) {
-        fprintf(stderr,"error from writei: %s\n", snd_strerror(rc));
+        fprintf(stderr,"error from write: %s\n", snd_strerror(rc));
       }  else if (rc != (int)frames) {
         fprintf(stderr, "short write, write %d frames\n", rc);
       }
@@ -728,12 +634,8 @@ void BackendStuff::listen_msg()
     snd_pcm_close(handle);
     free(buffer);
     close(openfd);
-    /*
-    if( remove( "/tmp/jabra_capture.wav" ) != 0 )
-        perror( "Error deleting file" );
-      else
-        puts( "File successfully deleted");
-    */
+
+    bth_msg_recvd = false;
     //qDebug() << "Ende von listen_msg()!\n";
 }
 

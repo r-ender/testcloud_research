@@ -95,6 +95,10 @@ Page {
             onClick_n:  _textfield.text += _singlekey._n
             onClick_m:  _textfield.text += _singlekey._m
 
+            onClick_Semicol: _textfield.text += _singlekey._Semicol
+            onClick_Period: _textfield.text += _singlekey._Period
+            onClick_Questm: _textfield.text += _singlekey._Questm
+
 
             //for deleting check SingleKey.qml
         }
@@ -160,14 +164,39 @@ Page {
                             width: parent.width
                             Button {
                                 id: _sendButton
-                                text: "Send"
-                                //enabled: _textfield.length > 0   //only enable when message to send
+
+                                Text{
+                                    id: _text_send
+                                    anchors.left: _sendButton.left
+                                    anchors.leftMargin: 45
+                                    anchors.top: _sendButton.top
+                                    anchors.topMargin: 10
+                                    text: "Send"
+                                    font.pixelSize: 18
+                                }
+
+                                Image {
+                                    id: _bt_symbol
+                                    anchors.left: _sendButton.left
+                                    anchors.leftMargin: 10
+                                    anchors.top: _sendButton.top
+                                    anchors.topMargin: 7
+                                    anchors.bottom: _sendButton.bottom
+                                    anchors.bottomMargin: 7
+                                    source: "qrc:/bluetooth_symbol.png"
+                                    sourceSize.width: 45
+                                    sourceSize.height: 40
+                                }
+
                                 enabled: true
                                 onClicked:
                                 {
                                     //_afbBackend.sendMessage("motalk2021","ping", true);
-                                    _afbBackend.sendMessage("motalk2021","rewr",{"index":"blub"});
+                                    //_afbBackend.sendMessage("motalk2021","rewr",{"index":"blub"});
                                     //_afbBackend.sendMessage("motalk2021","rewr",true);
+                                    _afbBackend.UserInput = _textfield.text;
+
+                                    _afbBackend.bth_usage();
                                 }
                             }
 
@@ -195,7 +224,8 @@ Page {
 
                             Button {
                                 id: _UserInput
-                                text: "ParseUserInput"
+                                //text: "ParseUserInput"
+                                text: "WebSocket Send"
                                 enabled: true
                                 onClicked:
                                 {
