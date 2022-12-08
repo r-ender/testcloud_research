@@ -27,6 +27,7 @@
 //#include <time.h>
 //#include <QThread>
 
+
 //constructor
 BackendStuff::BackendStuff(QObject *parent) : QObject(parent)
 {
@@ -144,6 +145,8 @@ void BackendStuff::sendMessage(QString api, QString verb)
 
 void BackendStuff::bth_usage()
 {
+    //test
+    qDebug() << "Output printmsg: " << printmsg << "   print_msg_recv: " << print_msg_recv();
     //qDebug() << "Bluetooth-test-Bluetooth-test\n";
 
     Bluetooth_Wrapper bt_wrapper;
@@ -322,6 +325,65 @@ void BackendStuff::bt_server(void)
                 }
 
                 close(openfd);
+
+                //check if parsed file is audio(binary) or text:
+                FILE * pFile;
+                uint32_t n= 0;
+                pFile = fopen("/tmp/msg_recvd.wav", "rb");
+                if(pFile == NULL) perror("Error opening file!\n");
+                else
+                {
+                    while(fgetc(pFile) != EOF) ++n;
+
+                    /*
+                    if(feof(pFile))
+                    {
+                        printf("End of File reach, total bytenumber: %d\n", n);
+                    }
+                    else
+                    {
+                        puts("End of file not reached!\n");
+                    } */
+                }
+
+                fclose(pFile);
+
+                uint32_t equal_zero = 0;
+                char check_byte;
+                std::ifstream parsed("/tmp/msg_recvd.wav");
+                for(uint32_t i = 0; i<n; i++)
+                {
+                    check_byte = parsed.get();
+                    if(check_byte != NULL)
+                    {
+                        if(check_byte == 0) equal_zero++;
+                        //std::cout << "check_byte: " << check_byte << " in decimal " << std::dec << (uint32_t) check_byte << ...
+                    }
+                }
+
+                if(equal_zero)
+                {
+                    qDebug() << "Received message is audio/binary!\n";
+                    // < mache roten Punkt auf voice-option >
+                }
+                else
+                {
+                    qDebug() << "Received message is text!\n";
+                    // < mache roten punkt auf type-option >
+                    QString temp_printmsg;
+                    QFile file("/tmp/msg_recvd.wav");
+                    if(file.open(QIODevice::ReadOnly)) {
+                         QTextStream in(&file);
+                         while(!in.atEnd())
+                             temp_printmsg = in.readAll();
+                    }
+                    file.close();
+
+                    for(uint32_t x=0; x < (uint32_t)temp_printmsg.length(); x++)
+                    {
+                        if(temp_printmsg[x] != 0x00) printmsg.append(temp_printmsg[x]);
+                    }
+                }
                 bth_msg_recvd = true;
 
              }
@@ -421,9 +483,10 @@ void BackendStuff::capture_voice()
       snd_pcm_uframes_t frames;
       char *buffer;
 
-      //rc = snd_pcm_open(&handle, "hw:1,0", SND_PCM_STREAM_CAPTURE, 0);
+      rc = snd_pcm_open(&handle, "hw:1,0", SND_PCM_STREAM_CAPTURE, 0);
+
       //für CloudLab andere Headset-Schnittstelle
-      rc = snd_pcm_open(&handle, "hw:2,0", SND_PCM_STREAM_CAPTURE, 0);
+      //rc = snd_pcm_open(&handle, "hw:2,0", SND_PCM_STREAM_CAPTURE, 0);
 
       if (rc < 0) {
         fprintf(stderr,"unable to open pcm device: %s\n",snd_strerror(rc));
@@ -506,6 +569,19 @@ void BackendStuff::capture_voice()
         close(openfd);
 
 }
+
+/*
+void BackendStuff::print_msg()
+{
+    QFile file("/tmp/msg_recvd.wav");
+    if(file.open(QIODevice::ReadOnly)) {
+         QTextStream in(&file);
+         while(!in.atEnd())
+             print_msg_recv = in.readAll();
+    }
+    file.close();
+}
+*/
 
 void BackendStuff::listen_msg()
 {

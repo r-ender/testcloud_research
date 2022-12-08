@@ -27,6 +27,7 @@
 
 extern bool bth_msg_recvd;
 extern QString btaddr;
+extern QString printmsg;
 extern bool get_btstate(void);
 extern void set_btstate(bool);
 extern uint8_t rfcomm_bth_portnr;
@@ -65,6 +66,8 @@ class BackendStuff : public QObject //, public bluetooth_recv
     Q_PROPERTY(QString receiveBuffer READ getBuffer NOTIFY bufferChanged)
     Q_PROPERTY(QString UserInput READ UserInput WRITE setUserInput NOTIFY UserInputChanged)
     Q_PROPERTY(QString BluetoothAdr READ BluetoothAdr WRITE setBluetoothAdr NOTIFY BluetoothAdrChanged)
+    //Q_PROPERTY(QString print_msg_recv READ print_msg_recv WRITE setPrint_msg_recv NOTIFY print_msg_recvChanged)
+    Q_PROPERTY(QString print_msg_recv READ print_msg_recv)
     Q_PROPERTY(QString BluetoothClr READ BluetoothClr NOTIFY BluetoothClrChanged)
     Q_PROPERTY(bool Bth_msg_recv READ Bth_msg_recv NOTIFY Bth_msg_recvChanged)
 
@@ -140,7 +143,7 @@ public:
                 m_BluetoothAdr = a;
                 emit BluetoothAdrChanged();
             }
-            qDebug() << "(in function setBluetoothAdr) setBluetoothAdr: " << m_BluetoothAdr;
+            qDebug() << "setBluetoothAdr: " << m_BluetoothAdr;
 
             //save Bluetooth-Address in global variable
             btaddr = m_BluetoothAdr;
@@ -182,26 +185,11 @@ public:
         }
     }
 
+    QString print_msg_recv() const {
+        return printmsg;
+    }
+
     QString BluetoothAdr() const {
-        //qDebug() << "BluetoothAdr getter function";
-        /*
-        QString parsed_btadr;
-        QString path = QString("/tmp/motalk_bt-address.txt");
-        QFile file(path);
-
-        //read out of file
-        if(!file.open(QIODevice::ReadOnly)){
-            file.close();
-        } else {
-            QTextStream in(&file);
-            while(!in.atEnd()){
-                parsed_btadr = in.readLine();
-            }
-
-            file.close();
-        }
-    */
-        //return parsed_btadr;
         return btaddr;
     }
 
@@ -223,6 +211,7 @@ signals:
     void listenStarted();
     void bluetoothStarted();
     void Bth_msg_recvChanged();
+    //void print_msg_recvChanged();
 
     //slots make c++ methods callable from qml
 public slots:
@@ -239,6 +228,7 @@ public slots:
     void bt_voice_send();
     void capture_voice();
     void listen_msg();
+    //void print_msg();
     void speechstart();   // --> former teststart
     void speechfinish();  // --> former testfinish
     void listenFinish();

@@ -55,7 +55,7 @@ Page {
         SingleKey{
             id: _singlekey
             x: 50
-            y: 150
+            y: 100
 
             onClick_1:  _textfield.text += _singlekey._1
             onClick_2:  _textfield.text += _singlekey._2
@@ -103,26 +103,12 @@ Page {
             //for deleting check SingleKey.qml
         }
 
-                /*
-                    Rectangle{
-                        id: _textKeyb
-                        Layout.fillWidth: true
-                        x: 70
-                        y: 400
-                        visible: true
-                        focus: true
-                        Text{
-                            text: labeltext
-                            font.pointSize: 14
-                            color: "yellow"
-                        }
-                    } */
-
                     Rectangle{
                         id: _textRect
                         Layout.fillWidth: true
+                        width: 700
                         x: 50
-                        y: 400
+                        y: 350
                         Text{
                             text: _afbBackend.receiveBuffer
                             font.pointSize: 14
@@ -132,18 +118,18 @@ Page {
 
                     Rectangle {  //Pane is a rectangle whose color comes from the application's style, similar to Frame, without stroke around its border.
                         id: _rect
-                        Layout.fillWidth: true
+                        //Layout.fillWidth: true
                         x: 50
-                        y: 500
+                        y: 450
+                        width: 500
 
                         RowLayout {
                             width: parent.width
 
                             TextField {
                                 id: _textfield
-                                //objectName:"inputText"
-                                y: 640
-                                width: 120
+                                y: 440
+                                Layout.fillWidth: true
                                 height: 45
                                 //topPadding: 8
                                 font.pointSize: 14
@@ -159,7 +145,7 @@ Page {
                         id: _rect2
                         Layout.fillWidth: true
                         x: 50
-                        y: 550
+                        y: 500
                         RowLayout {
                             width: parent.width
                             Button {
@@ -195,7 +181,6 @@ Page {
                                     //_afbBackend.sendMessage("motalk2021","rewr",{"index":"blub"});
                                     //_afbBackend.sendMessage("motalk2021","rewr",true);
                                     _afbBackend.UserInput = _textfield.text;
-
                                     _afbBackend.bth_usage();
                                 }
                             }
@@ -236,7 +221,41 @@ Page {
                                 }
                             }
                         }
-
                 }
-              }
+
+                    TextField {
+                        id: _rcvtext
+                        x: 50
+                        y: 580
+                        Layout.fillWidth: true
+                        //width: 1700
+                        //height: 45
+                        //topPadding: 8
+                        font.pointSize: 18
+                        //bottomPadding: 16
+                        color: "blue"
+
+                        placeholderText: "Received textmessage..."
+                        renderType: Text.QtRendering
+                    }
+
+                    Button {
+                        id: _roundbutton_txtmsg
+                        text: "reload message"
+                        x: 420
+                        y: 580
+                        onClicked:
+                        {
+                            //_rcvtext.text = "hallo1234";
+                            _rcvtext.text = _afbBackend.print_msg_recv;
+                        }
+
+                        background: Rectangle {
+                                color: "chartreuse"
+                                border.width: 3
+                                border.color: "blue"
+                                radius: 25
+                            }
+                    }
+         }
 
