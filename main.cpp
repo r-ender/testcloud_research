@@ -9,6 +9,7 @@
 uint8_t rfcomm_bth_portnr = 0;
 bool bt_bound2 = false;
 bool bth_msg_recvd = false;
+bool bth_txtmsg_recvd = false;
 QString btaddr, printmsg;
 
 void set_btstate(bool x)

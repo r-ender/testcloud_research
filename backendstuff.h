@@ -26,6 +26,7 @@
 #define ALSA_PCM_NEW_HW_PARAMS_API
 
 extern bool bth_msg_recvd;
+extern bool bth_txtmsg_recvd;
 extern QString btaddr;
 extern QString printmsg;
 extern bool get_btstate(void);
@@ -66,10 +67,10 @@ class BackendStuff : public QObject //, public bluetooth_recv
     Q_PROPERTY(QString receiveBuffer READ getBuffer NOTIFY bufferChanged)
     Q_PROPERTY(QString UserInput READ UserInput WRITE setUserInput NOTIFY UserInputChanged)
     Q_PROPERTY(QString BluetoothAdr READ BluetoothAdr WRITE setBluetoothAdr NOTIFY BluetoothAdrChanged)
-    //Q_PROPERTY(QString print_msg_recv READ print_msg_recv WRITE setPrint_msg_recv NOTIFY print_msg_recvChanged)
     Q_PROPERTY(QString print_msg_recv READ print_msg_recv)
     Q_PROPERTY(QString BluetoothClr READ BluetoothClr NOTIFY BluetoothClrChanged)
     Q_PROPERTY(bool Bth_msg_recv READ Bth_msg_recv NOTIFY Bth_msg_recvChanged)
+    Q_PROPERTY(bool Bth_txtmsg_recv READ Bth_txtmsg_recv NOTIFY Bth_txtmsg_recvChanged)
 
 public:
     BackendStuff(QObject *parent = nullptr);
@@ -163,6 +164,17 @@ public:
         }
     }
 
+    bool Bth_txtmsg_recv() const {
+        if (bth_txtmsg_recvd == true)
+        {
+            return(true);
+        }
+        else
+        {
+            return(false);
+        }
+    }
+
     bool Bth_msg_recv() const {
         if( bth_msg_recvd == true)
         {
@@ -211,7 +223,7 @@ signals:
     void listenStarted();
     void bluetoothStarted();
     void Bth_msg_recvChanged();
-    //void print_msg_recvChanged();
+    void Bth_txtmsg_recvChanged();
 
     //slots make c++ methods callable from qml
 public slots:

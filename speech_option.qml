@@ -245,7 +245,7 @@ Page {
 
                     Button {
                         id: _msg_notification
-                        visible: _afbBackend.Bth_msg_recv
+                        visible: _afbBackend.Bth_msg_recv   // true or false
                         anchors.right: _rect4.right
                         anchors.top: _rect4.top
                         anchors.rightMargin: 10

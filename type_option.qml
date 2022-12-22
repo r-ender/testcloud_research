@@ -240,6 +240,24 @@ Page {
                     }
 
                     Button {
+                        id: _textmsg_notification
+                        visible: _afbBackend.Bth_txtmsg_recv   // true or false
+                        anchors.right: _rcvtext.right
+                        anchors.top: _rcvtext.top
+                        anchors.rightMargin: 0
+                        anchors.topMargin: -20
+
+                        background: Rectangle {
+                                width: (parent.width<parent.height?parent.width:parent.height)*2
+                                height: width
+                                color: "red"
+                                border.width: 1
+                                border.color: "red"
+                                radius: width*0.5
+                            }
+                    }
+
+                    Button {
                         id: _roundbutton_txtmsg
                         text: "reload message"
                         x: 420
@@ -248,6 +266,7 @@ Page {
                         {
                             //_rcvtext.text = "hallo1234";
                             _rcvtext.text = _afbBackend.print_msg_recv;
+                            _textmsg_notification.visible = false;
                         }
 
                         background: Rectangle {

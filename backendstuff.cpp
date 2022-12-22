@@ -53,6 +53,9 @@ BackendStuff::BackendStuff(QObject *parent) : QObject(parent)
     emit Bth_msg_recvChanged();
     Bth_msg_recv();
 
+    emit Bth_txtmsg_recvChanged();
+    Bth_txtmsg_recv();
+
 }
 
 //call an api's verb with an argument
@@ -146,7 +149,7 @@ void BackendStuff::sendMessage(QString api, QString verb)
 void BackendStuff::bth_usage()
 {
     //test
-    qDebug() << "Output printmsg: " << printmsg << "   print_msg_recv: " << print_msg_recv();
+    //qDebug() << "Output printmsg: " << printmsg << "   print_msg_recv: " << print_msg_recv();
     //qDebug() << "Bluetooth-test-Bluetooth-test\n";
 
     Bluetooth_Wrapper bt_wrapper;
@@ -185,21 +188,15 @@ void BackendStuff::bt_voice_send()
     if( fopen("/tmp/jabra_capture.wav", "r") == NULL)
     {
         qDebug() << "Error parsing audio file!\n";
-
-        //zum Testen:
-        bth_msg_recvd = true;
         return;
     }
 
     Bluetooth_Wrapper bt_wrapper;
     int s, status;
-    //QString input;
 
     s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);	//domain: bluetooth, type:data-stream, BT-Protocol: RFCOMM
 
-    //std::string bthadr = BluetoothAdr().toStdString();
     std::string bthadr = btaddr.toStdString();
-
 
     std::cout << "User getter bluetooth addr: " << bthadr << std::endl;
 
@@ -219,12 +216,29 @@ void BackendStuff::bt_voice_send()
         qDebug() << "Parsing jabra_capture failed!\n";
     }
 
+    uint32_t original_balength=(uint32_t)ba.length();
+    //printf("Output of ba-Stream of length: %d\n", original_balength);
+    qDebug() << "Output of ba-Stream of length: " << original_balength;
+    /*
+    for(uint32_t z = 0; z< (uint32_t) (ba.length()); z++)
+    {
+        printf("%x", ba[z] & 0xff);
+    }*/
+
+
     // send  message
     if( status == 0 ) {
         //status = bt_wrapper.bt_write(s, "hello!", 6);
         //bt_wrapper.bt_write(s,&output[0],output.length()); //write-function requires void-pointer, hence the address of first element
-        bt_wrapper.bt_write(s,ba,ba.length());
+        //while ( (uint32_t) bt_wrapper.bt_write(s,ba,ba.length() != 0)
+        uint32_t bytessent = 0;
+        //do{
+            bytessent = (uint32_t) bt_wrapper.bt_write(s,ba,ba.length());
+            qDebug() << bytessent << " Bytes have been transmitted\n";
+        //}while (bytessent != 0);
+            //if(bytessent != 0) bt_wrapper.bt_write(s,ba[bytessent],(uint32_t)ba.length() - bytessent);
     }
+
 
     if( status < 0 ){
         std::cout << "status: " << status << std::endl;
@@ -261,13 +275,14 @@ void BackendStuff::bt_server(void)
         //bacpy(&loc_addr.rc_bdaddr, BDADDR_ANY);		/* Bluetooth address of local bluetooth adapter */
         loc_addr.rc_bdaddr = *BDADDR_ANY;
         //loc_addr.rc_channel = RFCOMM_SERVER_PORT_NUM;	/* port number of local bluetooth adapter */
-        //loc_addr.rc_channel = (uint8_t) 1;
+        loc_addr.rc_channel = (uint8_t) 1;
 
+    /*
         rfcomm_bth_portnr++;
         if (rfcomm_bth_portnr > 5) rfcomm_bth_portnr = 1;
         qDebug() << "Rfcomm-Portnumber: " << rfcomm_bth_portnr << "\n";
         loc_addr.rc_channel = rfcomm_bth_portnr;
-
+    */
         if(bind(server_sock, (struct sockaddr *)&loc_addr, sizeof(loc_addr)) < 0) //accept incoming connections and reserve OS resources
         {
             perror("failed to bind");
@@ -277,6 +292,8 @@ void BackendStuff::bt_server(void)
             bt_bound = true;
         }
 
+    while(true)
+    {
         /* put socket into listening mode */
         listen(server_sock, 1);		/* backlog = 1, max length to which the queue pending connections for sockfd may grow */
 
@@ -317,7 +334,8 @@ void BackendStuff::bt_server(void)
                 //while(!(bytes_read = recv(client_sock, bt_buf, sizeof(bt_buf), 0)))
                 while( (bytes_read = read(client_sock, bt_buf,sizeof(bt_buf))) > 0 )
                 {
-                  write(openfd, bt_buf, sizeof(bt_buf));
+                  //write(openfd, bt_buf, sizeof(bt_buf));
+                    write(openfd, bt_buf, bytes_read); //test
                 }
                 //bytes_read = recv(client_sock, bt_buf, sizeof(bt_buf), 0);
                 if( bytes_read == 0 ) {
@@ -365,11 +383,14 @@ void BackendStuff::bt_server(void)
                 {
                     qDebug() << "Received message is audio/binary!\n";
                     // < mache roten Punkt auf voice-option >
+                    bth_msg_recvd = true;
                 }
                 else
                 {
                     qDebug() << "Received message is text!\n";
                     // < mache roten punkt auf type-option >
+                    bth_txtmsg_recvd = true;
+
                     QString temp_printmsg;
                     QFile file("/tmp/msg_recvd.wav");
                     if(file.open(QIODevice::ReadOnly)) {
@@ -384,28 +405,24 @@ void BackendStuff::bt_server(void)
                         if(temp_printmsg[x] != 0x00) printmsg.append(temp_printmsg[x]);
                     }
                 }
-                bth_msg_recvd = true;
 
              }
         else {
                 printf("Unexpected event occurred: %d\n", btpoll.revents);
              }
         }
+    }
 
 }
 
 void BackendStuff::bt_recv_onoff(bool bt_on)
 {
-    //std::cout << "This is bt_recv_on_off" << std::endl;
-    //std::cout << "variable states: bt_on = " << bt_on << " , bt_bound2 = " << get_btstate() << std::endl;
-
     switch (bt_on)
     {
         case true:
             if (get_btstate())
             {
                 std::cout << "Bluetooth already bound - turn off and on again" << std::endl;
-                //std::cout << "new variable states: bt_on = " << bt_on << " , bt_bound2 = " << get_btstate() << std::endl;
             }
             else
             {
@@ -415,7 +432,6 @@ void BackendStuff::bt_recv_onoff(bool bt_on)
                 btrcv = std::thread{&BackendStuff::bt_server, this};
                 //std::cout << "After create, get btrcv id? --> " << btrcv.get_id() << std::endl;
                 btrcv.detach();
-                //std::cout << " new variable states: bt_on = " << bt_on << " , bt_bound2 = " << get_btstate() << std::endl;
             }
             break;
 
@@ -434,12 +450,10 @@ void BackendStuff::bt_recv_onoff(bool bt_on)
                 close(server_sock);
 
                 set_btstate(false);
-                //std::cout << " new variable states: bt_on = " << bt_on << " , bt_bound2 = " << get_btstate() << std::endl;
             }
             else
             {
                 std::cout << "bt is already off" << std::endl;
-                //std::cout << " new variable states: bt_on = " << bt_on << " , bt_bound2 = " << get_btstate() << std::endl;
             }
             break;
         }
