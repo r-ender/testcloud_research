@@ -6253,4 +6253,859 @@ Aufnahme klappt einigermaßen gut.
 
 Next: Wiedergabe Tonaufnahme!  Graphik passt, jetzt Funktion implementieren --> Hören klappt, evtl nach hören löschen ?!
 Versuchen Files per bluetooth zu versenden ?!
-Oder vorher versuchen alles in sauberer C++ Stil zu übertragen ?!
+Oder vorher versuchen alles in sauberer C++ Stil zu übertragen ?! --> geht nicht in QML, aber ich versuche mal qt widget --> mit QWidget viel Arbeit, ich kann aber Teile von QML in C++ machen.
+
+Eine mögliche Lösung für mein Timer-Problem ?!:
+This signal is connected to a C++ object's slot using QObject::connect(), so that the cppSlot() method is called whenever the qmlSignal is emitted:
+Plan: von c++ zu speechoption.qml ein Signal legen, wenn dieses Signal in qml betätigt wird in C++ mit capture starten, die properties von Text ändern, warten, und dann Steuerung zurückgeben an qml
+
+Die id eines qml-Objects kann man nicht direkt in C++ ansprechen, aber evtl objectname
+
+findChild doesn't look for the id but the objectName property ---> Umweg über property int gehen. 
+( https://www.cleanqt.io/blog/crash-course-in-qt-for-c%2B%2B-developers,-part-2 )
+https://www.youtube.com/watch?v=YdTxhI-EFFs
+https://github.com/KDAB/kdabtv
+
+Qml file is component. Please note what u r changing is object property. So you have to have object displayed?
+( https://stackoverflow.com/questions/51824477/changing-qml-object-value-from-c )
+( https://doc.qt.io/qt-5/qtqml-cppintegration-contextproperties.html) 
+
+
+-->
+in input_test geht zwar das laden einer bestimmten Farbe von c** an QML aber immer nur einmal zum Start, nicht neuladen.
+Evtl mit load.qml:
+If you don't want to do this for some reason (e.g. because you want to keep the window around or whatever), you might try using a Loader and loading the QML file that way. Your main.qml would then look something like this:
+
+import QtQuick 2.0
+
+Loader {
+     source: "changing.qml"
+}
+
+Whenever you detect that changing.qml has changed, just toggle the active property of Loader to trigger a reload of the file.
+
+try:
+https://programmer.ink/think/qml-and-c-data-binding.html  --> mit dereferenzierung von a_name  (also &a_name)  klappt programm jetzt.
+mit input_test weiterarbeiten, zB bei erstem mal klicken öffnet sich Funtion in C++ Klasse und setzt notify-varibale wieder zurück
+
+< components = QML elements that can be instantiated from QML 
+Unlike the slots, which make C++ methods callable in QML, signals can be used to trigger QML code from C++.>
+
+--> 1.) when Button pressed: setSpeechsignal calls c++ method   2.) wenn fertig mit speechsignalChanged QML triggern
+
+( https://levelup.gitconnected.com/coding-with-qml-qt-c-class-the-epic-guide-to-improve-your-app-development-e851a7aa0fd1) 
+
+< You are using the wrong filename for your moced file. The correct name is typically
+
+    moc_filename.cpp when your class is declared in a header file
+    filename.moc when your class is declared in a source file
+
+When Q_OBJECT in xxx.h, after qmake, the system will generate a moc_xxx.cpp with xxx.h in it.
+When Q_OBJECT in xxx.cpp, after qmake, the system will generate a xxx.moc, and you need to add the .moc file into the .cpp file.
+>
+
+we want to trigger functions in QML when the C++ property changes. Unlike the slots, which make C++ methods callable in QML, signals can be used to trigger QML code from C++. So the data flow looks like this.
+The second possibility to use C++ components in QML is to register the class as a QML type.
+
+o connect to Qt C++ signals from within QML, use a signal handler with the on<SignalName> syntax. If the C++ object is directly creatable from within QML (see Defining new QML elements above) then the signal handler can be defined within the object declaration
+
+https://blog.felgo.com/cross-platform-app-development/how-to-expose-a-qt-cpp-class-with-signals-and-slots-to-qml#how-to-start-long-running-cpp-operations-from-qml
+https://doc.qt.io/archives/qt-4.8/qtbinding.html#receiving-signals
+
+
+---> mit Connections klappt es endlich aber nur bei qml_input_test, nicht ganz merged_qml_input_test!
+Nochmal in Ruhe mit speechsignal / setspeechsiganl / onSpeechSignalchanged etc. durchspielen nach Vorbild von input_test 
+
+erst nahc Durchlauf von capture_voice ( = slot) wird signal gesetzt in QML
+
+Lösung: QEventLoop ?! 
+Einfachere Lösung:  zwei Buttons, eins zu mStart und eins zum Stopp!
+Innerhalb innertimers kann ich sequentiell aufrufen!   ----> zufriedenstellendes Ergebnis erreicht!  Jetzt löschen von überflüssigem Code!
+
+--->
+Next:
+ 1.) Audio-Files per Bluetooth versenden --> check 
+2.) Empfänger signalisieren, dass Nachricht erhalten wurde 
+
+zu 1.) bt senden geshcieht in Bluetooth_test mit Unterfunktion bt_write.  (hier android-example: https://developer.android.com/guide/topics/connectivity/bluetooth/transfer-data )
+	Evtl via ObexRequest and -Response object oder konvertieren Audio-datei in Stream und sende dann. 
+
+Gleitkomma-Fehler wegen Rechnung 0/0 "Program received signal SIGFPE, Arithmetic exception."
+weil bytesPerSample = wavHeader.bitsPerSample / 8;      //Number of bytes per sample  und uint64_t numSamples = wavHeader.ChunkSize / bytesPerSample;
+
+in jabra-WAV Datei:
+Breakpoint 2, main (argc=2, argv=0x7fffffffe008) at read_wav.cpp:68
+(gdb) p wavHeader
+$4 = {RIFF = "\000\000\000", ChunkSize = 0, WAVE = "\000\000\000", fmt = "\000\000\000", Subchunk1Size = 0, AudioFormat = 0, NumOfChan = 0, SamplesPerSec = 0, bytesPerSec = 0, blockAlign = 0,
+  bitsPerSample = 0, Subchunk2ID = "\000\000\000", Subchunk2Size = 0}
+
+
+für testfile.wav
+(gdb) p wavHeader
+$1 = {RIFF = "RIFF", ChunkSize = 515828, WAVE = "WAVE", fmt = "fmt ", Subchunk1Size = 16, AudioFormat = 1, NumOfChan = 1, SamplesPerSec = 44100, bytesPerSec = 88200, blockAlign = 2, bitsPerSample = 16,
+  Subchunk2ID = "data", Subchunk2Size = 515792}
+
+
+evtl ist jabra-wav compressed oder padded, darum hexeditor vergleich:  bei jabra fehlt im Header: 
+00000000: 5249 4646 f4de 0700 5741 5645 666d 7420  RIFF....WAVEfmt 
+00000010: 1000 0000 0100 0100 44ac 0000 8858 0100  ........D....X..
+00000020: 0200 1000 6461 7461 d0de 0700 0000 0000  ....data........
+
+(darum evtl manchmal auch der abgehakte ton am anfang beim Anhören?!)
+Link zum Wave-Format:	http://soundfile.sapp.org/doc/WaveFormat/
+
+
+beim Erzeugen des Jabra-Files einfach den Header voranstellen!
+
+Ich nehme ein pcm-File auf, das ist kein wav-File! Erklärung: PCM (Pulse Code Modulation) is a technique use to represent analog sound in digital form. The data on CD are in PCM form as most wav files. Wav is a file format. Is just a container to store the data in a way that readable by windows. Most wav has PCM data in it. Wie ein Buch und Text, als Buch wird nur Text+Fassung bezeichnet.
+
+---> es müsste eigentlich reichen das PCM-File von binär in hex zu wandeln und zu versenden. Also die Datei in ein QString konvertieren, an bluetooth_test senden und von dort an bt_write geben.
+	QString::number(int n, int base = 10) wobei base in der MAthematik die Anzahl der Zeichen wiedergibt, also dezimal = 10, weil es 10 Zeichen (0,1,2,3,...9) zur Auswahl hat, binär base=2, usw.
+
+ich kann daten nur als std::string per bt_write versenden. Einlesen klappt, als nächstes bluetooth sendtest.
+
+es konnten Bluetoothdaten gesendet werden (in motalk bt-addr eingeben, auf cloud-lab bluetoothctl,discoverable on und dann rfcomm_server starten währen btmon läuft)  und HExwerte passen anscheinen nur überein, nicht binär!
+
+in motalk Debug sieht man auch die Ausgabe, nämlich binär-Werte. 
+---> eingelesene Daten in ordentlich Hex-Form bringen, dann per BLuetooth versenden ! Vorher testesn, ob die hex-Werte dann auch als audio wiedergegeben wreden können.
+
+"umwandeln in hex: input.toLatin1().toHex(); "
+als nächstes testen, ob daraus wieder ton ausgelensen werden kann?! ---> anhören geht leider nicht.
+
+nicht so einfach konvertierbar.
+1.) sichergehen, dass konvertierung von binary nach hex gebraucht wird, evtl gibt es einen weg binary zu versenden ohne zu ändern (google: "c send original binary file bluetotth,tcp etc."
+2.) falls konvertiert werden muss, erstmal prüfen, ob binary korrekt in hex verwandelt wurde mit xxd.
+
+zu 1.)
+möglicherweise sinnvoll File als QByteArray zu senden.
+
+---> Senden klappt relativ bytegenau aber nicht alles passt zu 100% --> soundcheck auf Cloud-Lab durchführen !
+
+--> Das Senden mit ByteArray klappt, aber beim Empfang werden nur begrenzte Bytes eingelesen und keine gespeichert in file.
+rfcomm_server debuggen auf cloudlab! --> ein paar fehler behoben, jetzt klappt das file versenden schonmal grundsätzlich, aber größe muss sich noch ändern
+
+testfile test.wav senden per bluetooth, nicht mit eigenem programm sondern normale als referenz nutzen
+
+pacmd list-sources ist wohl nur für eingabegeräte und list-sinks für Ausgabe
+
+das Rauschen kommt durch das rfcomm_server  Server programm auf dem Cloud-Lab zustande. genauer gesagt weil es bytes verschoben den string speicher.
+ich nehme absofort ~/reference_jabracap.wav als referenz her, was zu correct_jabra_cap auf cloud-lab passt, um nicht immer neu aufnehmen zu müssen und feste bitstream zu haben. davon dann Kopien machen.
+
+
+--> auf cloudlab wird buffer jedes mal in File geschrieben aber liest nur ein Byte ein, dann das nächste usw. darum evtl write(file) erst nach der while-loop aufrufen? oder bytes einzeln in File schreiben, buffer-size = 1?
+
+(erinnerung:  bluetooth-sendto auf gast-pc und auf cloudlab obexpushd ...  zum Empfang / senden von bluetooth-files)
+----> bluetooth mepfangen und abspielen auf cloud-lab klappt nun perfekt!
+
+
+Next:
+Empfänger signalisieren, dass Nachricht erhalten wurde: 
+	1.) bluetooth in non-blocking listen-mode
+	2.) in recv_jabra_msg.wav speichern
+	3.) Anwender benachrichtigen 
+
+um socket in Background laufen zu lassen: Qt has QTcpSocket with asyncronous signal-slot api, you can use that. Or you can use QThread.
+The asynchronous (non-blocking) approach. Operations are scheduled and performed when control returns to Qt's event loop. When the operation is finished, QTcpSocket emits a signal. For example, QTcpSocket::connectToHost() returns immediately, and when the connection has been established, QTcpSocket emits connected().
+https://doc.qt.io/qt-5/qtnetwork-fortuneclient-example.html , https://doc.qt.io/qt-5/qtnetwork-loopback-example.html , https://doc.qt.io/qt-5/qtnetwork-network-chat-example.html
+
+Poll the file descriptor with select and a zero timeout - if select says it's writeable, the send buffer isn't full.
+You can use two ioctls on the TCP socket: SIOCINQ returns the amount of unread data in the recieve buffer, and SIOCOUTQ returns the amount of unsent data in the send queue.
+
+Fehler beim Kompilieren in QT: /home/gast/Schreibtisch/agl_microservice/merged_QML_input_test/bluetooth.h:338: Warnung: taking address of temporary [-fpermissive]
+		--> Lösung bzw workaround im Project-file hinzufügen: QMAKE_CXXFLAGS=-fpermissive
+			oder elegant:
+				Constructs a temporary object and uses its address. This isn't allowed in C++. You can fix this by creating a named temporary variable and using bacpy and bacmp on it:
+
+				bdaddr_t tmp = { }; bacpy(&result[mote++], &tmp);
+
+
+make socket accepting non_blocking: fcntl(socket, F_SETFL, O_NONBLOCK);   --> Programm blockt nicht mehr für einkommende Verbindungen! 
+flag setzen, falls bluetooth-Buffer geladen wurde?
+
+mit handy daten audio an pc wiedergeben klappt, dafür erst alles trennen, von gast-pc pairen und danach connecten. 
+Aber in qt wird nicht angezeigt, dass Daten eintreffen, egal ob in non-blocking mode oder nicht ---> testen mit Cloud-Lab Pc. Und einlesen wie buffer auslesen und speichern.
+                                                      ^
+
+First, you establish what you think is a reasonable receive buffer size by setting SO_RCVBUF using setsockopt(). Then read back the actual read buffer size using getsockopt(), as you might not get what you ask for. :) Unfortunately, not all implementations allow you to read SO_RCVBUF back again, so your mileage may vary. Next, decide how much data you want to be present for reading before you want to read it. Set SO_RCVLOWAT with this size, using setsockopt(). Now, the socket's file descriptor will only select as readable when there is at least that amount of data read to read.
+
+--> Binding im HIntergrund klappt noch nciht so recht, wenn ich dann auf back gehe, ist wieder bluetooth auf rot
+	--> möglicherweise muss ich files nutzen, wie bereits beim Setzen der Ethernet-Sende-Adress
+
+Bluetooth-Empfang klappt leider noch nicht, erstmal trockenübung auf gast-pc bevor ich versuche in QML einzupflegen
+( gast@gast-pc:~/Schreibtisch/agl_microservice/bluetooth_gastpc_test$ gcc -g3 -o rfcomm_server rfcomm_server.c -L/home/gast/Schreibtisch/agl_microservice/bluetooth_raspi/bt_cpp/comp_files -I/home/gast/Schreibtisch/agl_microservice/sdk/sysroots/corei7-64-agl-linux/usr/include/bluetooth/ -lbluetooth )
+
+das Empfangen von Bluetooth-Nachrihcten klappt, aber nur wenn ich nicht im non-blocking mode bin. 
+Nachforschen evtl durch Anzeigen der Sockets in Linux ?! --> nicht so einfach, evtl über gdb und dann die Integerzahl von client_sock, server_sock checken
+
+evtl hilft select() funktion weiter -> select() gives you the power to monitor several sockets at the same time. It’ll tell you which ones are ready for reading, which are ready for writing, and which sockets have raised exceptions ?
+or better poll():
+The general gameplan is to keep an array of struct pollfds with information about which socket descriptors we want to monitor, and what kind of events we want to monitor for.
+Usefully, a listen()ing socket will return “ready to read” when a new incoming connection is ready to be accept()ed.
+
+Die Reihenfolge bei poll würde passen, also poll - accept - read/recv, aber das laufende Programm wird geblockt
+
+---> poll() blockt auch wenn ich den Timeout auf -1 stelle, googeln nach poll non-blocking o.Ä.
+
+Wichtig: The idea with non-blocking I/O is to be able to handle multiple sockets without resorting to multiple threads. --> Das bedeutet das hilft wir nihct unbedingt weiter, weil ich ja nur ein Socket habe, das im Hintergrund laufen soll.
+Versuch multi-threading mit C++ zum Kompilieren: gast@gast-pc:~/Schreibtisch/agl_microservice/bluetooth_gastpc_test$ g++ -g3 -pthread -o multithread multithread.cpp
+
+oder: gast@gast-pc:~/Schreibtisch/agl_microservice/bluetooth_gastpc_test$ g++ -std=c++11 -o multithread -Wl,--no-as-needed multithread.cpp -lpthread
+
+gcc -g3 -o rfcomm_server rfcomm_server.c -L/home/gast/Schreibtisch/agl_microservice/bluetooth_raspi/bt_cpp/comp_files -I/home/gast/Schreibtisch/agl_microservice/sdk/sysroots/corei7-64-agl-linux/usr/include/bluetooth/ -lbluetooth
+
++ 
+
+g++ -std=c++11 -o multithread -Wl,--no-as-needed multithread.cpp -lpthread
+
+==> g++ -std=c++11 -g3 -fpermissive -o bluetooth_multithread -Wl,--no-as-needed bluetooth_multithread.cpp -L/home/gast/Schreibtisch/agl_microservice/bluetooth_raspi/bt_cpp/comp_files -I/home/gast/Schreibtisch/agl_microservice/sdk/sysroots/corei7-64-agl-linux/usr/include/bluetooth/ -lbluetooth -lpthread
+
+---> es klappt mit Threading, jetzt läuft im Vordergund einfach Textein-/ausgabe und im HIntergrund ist bluetooth server aktiv und liest Nachricht ein :-)
+--> next einbauen in QTCreator Software und nochmal testen!!!
+
+Schwierig einzubauen in Qthread, weil std::thread-Objekt nach Verlassen der Methode wohl gelöscht wird, aber ich will dass es weiterläuft, bis ich manuell thread.join() aufrufe. Das bedeutet thread müsste global initialisert sein aber lokal in Methode gestartet/beendet werden.
+
+aus SOF: 
+You can't initialize the thread object after it's created; by definition, initialization occurs when an object is created. But you can use swap to move a thread object into another:
+		std::thread thr1; 		// no thread of execution
+		std::thread thr2(my_function_object); // creates thread of execution
+		thr1.swap(thr2);  // thr1 is now running the thread created as thr2 and thr2 has no thread of execution
+
+___> ich muss QThread nutzn, std::thread klappt überhaupt nicht
+
+Versuch mit lokalen client_sock/server_sock,
+Übertragung beim ersten Mal klappt aber dann nicht mehr, wahrscheinlich weil Thread nur einmal durchläuft. (Beim Abhören evtl den thread wieder neu scharf schalten?!)
+Am Sinnvollsten wahrscheinlich erstmal für etwas Ordnung zu sorgen und Klasse Backendstuff in Header-Datei auszulagern 
+		--> hat wohl geklappt aber vorsichtshalber Backup unter agl_microservices erstellt. Wichtig das Auskommentieren von main.moc, weil die Klasse davor in main.cpp definiert/deklariert war.
+
+ 
+tutorial wie eine Klasse von anderer erbt.  Aktuell klappt kompilieren nicht, weil Erben von klassen nicht so klappt. 
+Evtl am besten wenn ich von Klasse bt_receie über getter und setter auf client_sock/server_sock zugreife, oder diese global mache in main, dafür nciht mehr von Backendstuff erbe.
+
+das Einshcalten von receive führt zu einem Absturz des Programms wegen Objekt bt_recv. Der Inhalt von bt_recv.run() ist egal, stürzt auch so ab.
+
+< note: std::thread is moveable (and so is A until you add the destructor), but not copyable.>
+evtl brauche ich keine klasse bt_recv sondern kann das auch mit doppelerbung von QThread in BackendStuff lösen?!  --> nachschauen wie QThread funktioniert innerhalb selber klasse.
+
+< QThread: one extremely important thing to note here is that you should NEVER allocate heap objects (using new) in the constructor of the QObject class as this allocation is then performed on the main thread and not on the new QThread instance, meaning that the newly created object is then owned by the main thread and not the QThread instance. This will make your code fail to work >
+
+QThread mit Vorlage (https://github.com/fabienpn/simple-qt-thread-example/blob/master/mainwindow.h )
+
+
+Idee: in Konstruktor schon Threads starten, einmal normaler Programmdurchlauf, zweiter Thread ist while-loop mit Bedingung grün-Klick: bt_on und Klick auf rot bt_off ?!
+ std::thread::join blocks the current thread until the called thread has finished.
+
+cyclic dependency ( error: invalid use of incomplete type ‘class bluetooth_recv’):
+The technical answer is to forward declare the derived type (so that you can define the base), and then define the base.
+
+evtl kann ich im main-thread beides starten, sowohl bluetooth als auch App. Dann am Ende nach execute aber vor return 0  gebe ich t.join ein. Und in bt_server mache ich eine 100ms while-loop mit abfrage, ob bluetooth an/aus ist?
+
+bt_bound beheben, und nochmal neu google concurrency thread c++ QThread ?!
+
+Aktuell sieht es einigermaßen gut aus, im HIntergrund läuft thread "bt_bound false" und ich kann weiterhin Eingaben tätigen.
+Es bleibt durchgehend bei bt_bound = false, auch wenn ich bt starte. Evtl bei thread-aufruf variable bzw. pointer mitgeben?! 
+
+Vielversprechend ist condition_varibale und mutex. Damit kann ich nämlich eine Variable ändern (bt_bound) und sicherstellen, dass ein anderer thread erst darauf zugreift, wenn Variable geändert wurde.
+
+Anscheinend ist es möglich mit globaler Variable thread in einer Methode zu starten und in anderer zu beenden/joinen. 
+Beim joinen oder während es läuft und ich klicke ein QML-Fenster zurück crasht programm.  --> Schauen nach Thread-Id.
+Unklare Systemabstürze mit threads, etwas nachforschen.
+
+Wenn ich Thread detache läuft das aktuelle Fenster problemlos weiter, aber wenn ich dann auf back klicke, stürzt es ab, vielleicht wegen: 
+(jedes Mal wenn ich eine neue QML-page aufrufe, wird uach backendstuff Constructor aufgerufen) --> globale std::thread variable ?!
+
+---> Der Absturz hat wohl gar nicht unbedingt was mit thread zu tun, selbst wenn ich alle threads ausklammer, stürzt es ab. --> Hing mit Destructor zusammen, nachdem ich diesen auskommentiert hatte,
+läuft es nun weiter. Aber wenn ich die QML-Seiten wechselt ist die Bluetooth-Anzeige wieder rot, das ist aber nachrangig, erstmal testen ob bluetooth klappt, dann entrümpeln, dann um Farbe kümmern.
+
+Das Senden im HIntergrundmodus klappt, auch wenn ich eine andere Page öffne :-) 
+ABER: das klappt nur einmalig, wenn ich bluetooth ausschalten und wieder einschalte, klappt es nicht mehr wegen "failed to bind: Die Adresse wird bereits verwendet"
+--> if you're also busy testing your code your own application might still "own" the socket if it starts and stops relatively quickly. Try SO_REUSEADDR as a socket option!
+	( check via netstat -tulpn ; kill <pid>)
+	when you close the server program with client program still running this put the socket into TIME_WAIT state.
+	SO_REUSEADDR will let bind() proceed; but if you then want to listen to that socket, listen() will return EADDRINUSE all the same. In other words, this answer may help client software using 		ephemeral ports, but doesn't solve the issue for server software
+Alternative:
+	The program must have been written to attempt a binding to port 49200 and then increment by 1 if the port is already in use. Therefore, if you have control of the source code, you could change 	this behaviour to wait a few seconds and try again on the same port, instead of incrementing.
+	---> die Portnummer ändern falls ein port bereits verwendet wird ?!
+
+die if-Abfrage ist sequentiell und wird dann evtl doppelt aufgerufen, falls ich weiter oben eine Variable setze, die unten ausgelesen wird. 
+		--> hier kann entweder switch-case helfen oder temp-variablen, die ich am Ende von Methode zuweise.
+
+	das Nutzen globaler Variablen bei bt_bound klappt nun mit getter-/setter funktion, die Farbzuordnung passt immer noch nicht ganz!
+
+next: bluetooth-farbe ändern, bluetooth-device setting in globale Variable speichern anstatt file.
+< Note: Qt's property system supports creating dynamic properties at runtime. However, these properties (created with setProperty) are ignored by QML >
+https://machinekoder.com/creating-qml-properties-dynamically-runtime-c/
+
+The difference between QObject::setProperty() and QQmlProperty::write() is that the latter will also remove the binding in addition to setting the property value.
+If the height of the Item changed after the object->setProperty("width", 500) call, the width would be updated again, as the binding remains active. However, if the height changes after the QQmlProperty(object, "width").write(500) call, the width will not be changed, as the binding does not exist anymore.
+
+https://felgo.com/doc/qt/qtqml-cppintegration-interactqmlfromcpp/
+https://doc.qt.io/qt-6/qtqml-cppintegration-interactqmlfromcpp.html  --> signal/slot lösbar ?!
+
+bei setContextProperty wird das nur einmal geladen. Eventuell klappt es wenn ich das QML-Modul direkt in c++ erzeuge ?!
+
+ich kann in existierendem qml zwar aus c++ contestxtsetproperty farbe eingeben, aber das bleibt nicht, selbst wenn ich in c++ konstruktor eingebe
+gibt es in QML if/else -Bedingung?
+oder qml-modul in c++ schreiben und an page.qml heften?
+
+Idee: befehl raussuchen refreshen qml page und dann in Konstruktor eingeben
+
+<
+Here is the simplest solution in plain QML, using a configurable page list (like a model) + a Repeater + Loader items to not load everything at startup (lazy instanciation) and not destroy a page after hiding it (to not have to reload it if we come back to it) :
+
+import QtQuick 1.1
+
+Rectangle {
+    id: main_rectangle;
+    width: 360;
+    height: 640;
+
+    // Put the name of the QML files containing your pages (without the '.qml')
+    property variant pagesList  : [
+        "Page1",
+        "Page2",
+        "Page3",
+        "Page4",
+        "Page5"
+    ];
+
+    // Set this property to another file name to change page
+    property string  currentPage : "Page1";
+
+    Repeater {
+        model: pagesList;
+        delegate: Loader {
+            active: false;
+            asynchronous: true;
+            anchors.fill: parent;
+            visible: (currentPage === modelData);
+            source: "%1.qml".arg(modelData)
+            onVisibleChanged:      { loadIfNotLoaded(); }
+            Component.onCompleted: { loadIfNotLoaded(); }
+
+            function loadIfNotLoaded () {
+                // to load the file at first show
+                if (visible && !active) {
+                    active = true;
+                }
+            }
+        }
+    }
+}
+
+>
+
+
+signals can trigger qml from c++  ---> signal in Konstruktor zu mStart von Bluetooth_option ?!  oder state ?!
+
+Note: To handle custom signals in QML when using a context property, use the Connections QML Type.
+
+---> Klappt irgendwie alles nicht --> workaround, ich mache einfach einen refresh-button in bluetooth-option.qml der dann auf grün schaltet, und akutelle bt-send-addresse anzeigt ?!
+	bluetooth-adresse in globaler variable speichern und laden bei jedem aufruf klappt -  done :-)
+
+	Next: code bereinigen, Port für binding ändern um "already in use" zu verhindern ?!
+
+next: app stürzt app when listening oder recording nicht klappt --> ändern = done
+next: received Sprachnachricht unter anderem Namen speichern als jabra_capture.wav = done
+roter Punkt als Kennzeichnung für einkommende Sprachnachricht klappt, aber nur wenn Page neu aufgerufen wird, bei Frontpage wird Konstruktor nicht geladen --> klappt nicht aber wenig wichtig.
+
+next: bluetooth-Portnummer ändern falls gerade benutzt wird --> done, bis 5 hochzählen, danach neu starten von 1 und bind-fehler wird angezeigt.
+
+--> bis auf kleinere Design-Sachen ist App ausführbar --> testen mit Blackberry, dazu passendes Headset anstecken ?!
+
+touchscreen: 	
+Linksprite 96Boards Touch Screen
+
+
+AGL Member Webinar, Leon Anavi, Getting started with AGL using a Raspberry Pi
+Firmware KMS
+ To support both HDMI monitors and the 7” official Raspberry Pi touchscreen
+display, AGL for Raspberry Pi uses firmware KMS instead of full KMS.
+ Appropriate Linux kernel version, mesa with VC4 support and binary firmware in
+bcm2835-bootfiles is required
+ Variable VC4DTBO must be set to vc4-fkms-v3d to set appropriate device tree
+overlay in config.txt while building AGL for Raspberry Pi:
+VC4DTBO ?= "vc4-fkms-v3d"
+ For more details:
+https://jira.automotivelinux.org/browse/SPEC-2465
+
+https://www.waveshare.com/wiki/5inch_HDMI_LCD
+
+https://www.reichelt.com/raspberry-pi-shield-display-lcd-touch-5-800x480-pixel-rasp-pi-5td-wav-p227755.html?&trstct=pos_1&nbc=1
+---> evtl tocuhdisplay erstmal nicht nötig, einfaches Display und app mal zum Laufen bringen reicht auch dann jedoch test mit Maus, danach kann ich dann den von reichelt kaufen
+
+https://elinux.org/images/c/ca/Raspi_documented_config.txt
+
+der Test mit CLoudlab sendet voicemsg und signalisieren und abspielen hat geklappt :-) 
+
+Next: app kompilieren und testen auf Cloud-Lab, dann untereinander kommunizieren
+
+
+zum cross-compile für binding:
+neue Konsole öffnen, environment sourcen und folgenden Befehl ausführen: gcc -fPIC -shared tuto-1.c -o tuto-1.so $(pkg-config --cflags-only-I afb-daemon) -I/home/gast/Schreibtisch/agl_microservice/sdk/sysroots/corei7-64-agl-linux/usr/include
+
+App-Binary läuft nicht auf teststation, das .pro-File prüfen!!  Fehler bei @$(QMAKE) -o Makefile ../motalk.pro CONFIG+=release ?! CONFIG+=CXX ?
+---> https://medium.com/nerd-for-tech/cross-compiling-a-sample-application-using-automotive-grade-linux-d432effb297c
+ 
+Cross-Compiler sollte passen:
+gast@gast-pc:~/Schreibtisch/agl_microservice/app3_self_QML$ $CC --version
+x86_64-agl-linux-gcc (GCC) 9.3.0
+
+19.10. gegen 10:30  motalk-binary gebuildet ohne extra export path und ldconfig  --> läuft jetzt auf Testrechner, aber ein Fehler in Softwar main.qml Zeile 98 - cannot laod/assign property oder so
+Test: app.pro noch hinzufügen unter CONFIG+= qmltypes
+
+Test:
+erst einfaches for-loop Programm schreiben und crosscompilen. Wenn das klappt auf CloudPC dann übertragen in Qt
+
+HW von CLoudLab ist eigentlich gleich wie dieser PC (x86_64 GNU/LINUX) ---> einfaches binary file läuft problemlos auf cloudlab
+QT-APp läuft nun auch auf cloudPC mit modul laden vorher: sudo modprobe uvesafb
+
+um richtig testen zu können, muss aber QT-App mit passenden Kopfhörer-Settings geschrieben werden.
+Senden klappt nicht, bluetooth dbeuggen! (btmon zB)
+
+
+Auftretende Fehler:  beim Senden wird nur ein Teil der Voice-Datei gesendet, bzw. es kommt nur ein abgehackter Teil an. 
+Das Einlesen klappt nur einmalig, beim nächsten Mal wird kein File mehr generiert unter /tmp auf gast-PC
+bluetooth_test umbenennen in bth_usage und übertragen auf cloud-pc (siehe github)
+
+bluetooth test mit text senden
+
+
+Bluetooth-Verbindung zwischen CloudLab und gastPc klappt nicht mehr, Grund unumbered irgendwas:
+< ACL Data TX: Handle 256 flags 0x00 dlen 9                                                    #59 [hci0] 4.349886
+      Channel: 64 len 5 [PSM 3 mode 0] {chan 0}
+      RFCOMM: Unnumbered Info with Header Check (UIH) (0xef)
+         Address: 0x09 cr 0 dlci 0x02
+         Control: 0xff poll/final 1
+         Length: 0
+         FCS: 0x5c
+         Credits: 33
+        5c                                               \               
+> HCI Event: Number of Completed Packets (0x13) plen 5                                         #60 [hci0] 4.353172
+        Num handles: 1
+        Handle: 256
+        Count: 1
+> HCI Event: Number of Completed Packets (0x13) plen 5                                         #61 [hci0] 4.354175
+        Num handles: 1
+        Handle: 256
+        Count: 1
+> ACL Data RX: Handle 256 flags 0x02 dlen 9                                                    #62 [hci0] 4.354839
+      Channel: 64 len 5 [PSM 3 mode 0] {chan 0}
+      RFCOMM: Unnumbered Info with Header Check (UIH) (0xef)
+         Address: 0x0b cr 1 dlci 0x02
+         Control: 0xff poll/final 1
+         Length: 0
+         FCS: 0x86
+         Credits: 33
+        86                                               .               
+> ACL Data RX: Handle 256 flags 0x02 dlen 12                                                   #63 [hci0] 4.356134
+      Channel: 64 len 8 [PSM 3 mode 0] {chan 0}
+      RFCOMM: Unnumbered Info with Header Check (UIH) (0xef)
+         Address: 0x0b cr 1 dlci 0x02
+         Control: 0xef poll/final 0
+         Length: 4
+         FCS: 0x9a
+        66 67 68 68 9a                                   fghh.           
+> ACL Data RX: Handle 256 flags 0x02 dlen 8                                                    #64 [hci0] 4.357359
+      Channel: 64 len 4 [PSM 3 mode 0] {chan 0}
+      RFCOMM: Disconnect (DISC) (0x43)
+         Address: 0x0b cr 1 dlci 0x02
+         Control: 0x53 poll/final 1
+         Length: 0
+         FCS: 0xb8
+< ACL Data TX: Handle 256 flags 0x00 dlen 8                                                    #65 [hci0] 4.357462
+      Channel: 64 len 4 [PSM 3 mode 0] {chan 0}
+      RFCOMM: Unnumbered Ack (UA) (0x63)
+         Address: 0x0b cr 1 dlci 0x02
+         Control: 0x73 poll/final 1
+         Length: 0
+         FCS: 0x92
+> HCI Event: Number of Completed Packets (0x13) plen 5                                         #66 [hci0] 4.361149
+        Num handles: 1
+        Handle: 256
+        Count: 1
+> ACL Data RX: Handle 256 flags 0x02 dlen 8                                                    #67 [hci0] 4.363617
+      Channel: 64 len 4 [PSM 3 mode 0] {chan 0}
+      RFCOMM: Disconnect (DISC) (0x43)
+         Address: 0x03 cr 1 dlci 0x00
+         Control: 0x53 poll/final 1
+         Length: 0
+         FCS: 0xfd
+< ACL Data TX: Handle 256 flags 0x00 dlen 8                                                    #68 [hci0] 4.363697
+      Channel: 64 len 4 [PSM 3 mode 0] {chan 0}
+      RFCOMM: Unnumbered Ack (UA) (0x63)
+         Address: 0x03 cr 1 dlci 0x00
+         Control: 0x73 poll/final 1
+         Length: 0
+         FCS: 0xd7
+< ACL Data TX: Handle 256 flags 0x00 dlen 12                                                   #69 [hci0] 4.363710
+      L2CAP: Disconnection Request (0x06) ident 4 len 4
+        Destination CID: 64
+        Source CID: 64
+> HCI Event: Number of Completed Packets (0x13) plen 5                                         #70 [hci0] 4.368160
+        Num handles: 1
+        Handle: 256
+        Count: 1
+> HCI Event: Number of Completed Packets (0x13) plen 5                                         #71 [hci0] 4.369249
+        Num handles: 1
+        Handle: 256
+        Count: 1
+> ACL Data RX: Handle 256 flags 0x02 dlen 12                                                   #72 [hci0] 4.369970
+      L2CAP: Disconnection Request (0x06) ident 5 len 4
+        Destination CID: 64
+        Source CID: 64
+< ACL Data TX: Handle 256 flags 0x00 dlen 12                                                   #73 [hci0] 4.370043
+      L2CAP: Disconnection Response (0x07) ident 5 len 4
+        Destination CID: 64
+        Source CID: 64
+> ACL Data RX: Handle 256 flags 0x02 dlen 12                                                   #74 [hci0] 4.371181
+      L2CAP: Disconnection Response (0x07) ident 4 len 4
+        Destination CID: 64
+        Source CID: 64
+> HCI Event: Number of Completed Packets (0x13) plen 5                                         #75 [hci0] 4.374265
+        Num handles: 1
+        Handle: 256
+        Count: 1
+> HCI Event: Disconnect Complete (0x05) plen 4                                                 #76 [hci0] 6.549515
+        Status: Success (0x00)
+        Handle: 256
+        Reason: Remote User Terminated Connection (0x13)
+
+bei bluetooth-sendto und obexpushd auf cloud klappt es auch nicht, aber anderen Meldungen bei btmon, evtl muss ich einen gatt-service einrichten ("menu gatt") ?
+--> Bluetooth fehler auf cloud-lab behoben: mit "sudo service restart; sudo bluetoothd --compat &; sudo hciconfig hci0 up; sudo obexpushd bluetoothd &;
+
+das Senden von Audiodateien von gast-pc an Cloudlab funktioniert, aber nicht umgekehrt, da wird immer einiges abgeschnitten beim Aufzeichnen und in Datei steht /tmp/msg_recvd.way ist abgehakte Datei.
+das Senden von Text an cloudlab funktioniert ebenfalls, zumindest mit test rfcomm_server
+
+(next: bluetooth-textnachricht wiedergeben auf textfeld)
+
+Fehlermeldung beim Senden von bt-Daten (audio und text) an gast-PC:
+btmon:
+ACL Data RX: Handle 256 flags 0x01 dlen 16                                                                                                                                            #85 [hci0] 6.963058
+      Channel: 65 len 356 [PSM 1 mode 0] {chan 1}
+      SDP: Service Search Attribute Response (0x07) tid 1 len 351
+        Attribute bytes: 348
+          Attribute list: [len 0] {position 0}
+          Attribute list: [len 0] {position 1}
+          Attribute list: [len 2] {position 0}
+            Attribute: Unknown (0x0308) [len 0]
+          Attribute list: [len 1] {position 1}
+        data element size too short
+        0c                                               .               
+          Attribute list: [len 0] {position 0}
+        data element descriptor too short
+        05                                           
+
+next: bei textnachricht string nicht in textdatei zwischenspeichern, sondern in globaler Variable
+
+Vorgehensweise für bluetoothempfanf, wenn bei obexpushd steht "sdp setup failed":
+gast@gast-pc:~/Schreibtisch/agl_microservice/bluetooth_gastpc_test$ sudo service bluetooth stop
+gast@gast-pc:~/Schreibtisch/agl_microservice/bluetooth_gastpc_test$ sudo bluetoothd --compat &
+gast@gast-pc:~/Schreibtisch/agl_microservice/bluetooth_gastpc_test$ sudo hciconfig hci0 up
+gast@gast-pc:~/Schreibtisch/agl_microservice/bluetooth_gastpc_test$ sudo obexpushd -B -d &
+
+eine kleine Nachricht kann ich auch empfangen, z.B. eingetippte Zahlen aber große Nachrichten werden abgeschnitten bei ca 20.000B
+
+d-Bust setup failed, name already in use --> ps aux | grep blue
+
+übertragen von verschiedenen größeren bluetooth-dateien wird  abgebrochen
+ I-frame: Unsegmented TxSeq 12 ReqSeq 13
+
+ACL Data RX: Handle 256 flags 0x01 dlen 336                                               #177 [hci0] 94.198749
+      Channel: 64 len 676 ctrl 0x0d1a [PSM 4105 mode 3] {chan 0}
+      I-frame: Unsegmented TxSeq 13 ReqSeq 13
+
+ACL Data RX: Handle 256 flags 0x02 dlen 8                                                 #180 [hci0] 94.430183
+      Channel: 64 len 4 ctrl 0x0e01 [PSM 4105 mode 3] {chan 0}
+      S-frame: Receiver Ready (RR) ReqSeq 14
+
+"= bluetoothd: Unable to get io data for Object Push: getpeername: Transport endpoint is not connected"
+
+ändern von Status: install ok half-configured auf "Status: install ok installed"
+
+empfangen von obex-files klappt nicht, evtl wegen:
+gast@gast-pc:~/.cache/obexd$ systemctl --global --user is-enabled obex
+disabled
+
+evtl bug im Namen:
+https://bugs.mageia.org/show_bug.cgi?id=19140
+
+gast@gast-pc:/$ systemctl --global --user status obex
+● obex.service - Bluetooth OBEX service
+   Loaded: loaded (/usr/lib/systemd/user/obex.service; disabled; vendor preset: enabled)
+   Active: active (running) since Tue 2022-11-22 14:50:03 CET; 24h ago
+ Main PID: 8091 (obexd)
+   CGroup: /user.slice/user-1000.slice/user@1000.service/obex.service
+           └─8091 /usr/lib/bluetooth/obexd
+
+Nov 23 14:59:16 gast-pc obexd[8091]: DISCONNECT(0x1), (null)(0xffffffff)
+Nov 23 14:59:16 gast-pc obexd[8091]: DISCONNECT(0x1), SUCCESS(0x20)
+Nov 23 14:59:16 gast-pc obexd[8091]: disconnected: Transport got disconnected
+Nov 23 15:14:30 gast-pc obexd[8091]: CONNECT(0x0), (null)(0xffffffff)
+Nov 23 15:14:30 gast-pc obexd[8091]: CONNECT(0x0), (null)(0x0)
+Nov 23 15:14:30 gast-pc obexd[8091]: PUT(0x2), (null)(0xffffffff)
+Nov 23 15:14:30 gast-pc obexd[8091]: PUT(0x2), FORBIDDEN(0x43)
+Nov 23 15:18:53 gast-pc obexd[8091]: DISCONNECT(0x1), (null)(0xffffffff)
+Nov 23 15:18:53 gast-pc obexd[8091]: DISCONNECT(0x1), SUCCESS(0x20)
+Nov 23 15:18:53 gast-pc obexd[8091]: disconnected: Transport got disconnected
+
+--> wahrscheinlihc Konflikt mit Rechten:
+
+gast@gast-pc:/$ sudo systemctl --global enable obex
+Created symlink /etc/systemd/user/dbus-org.bluez.obex.service → /usr/lib/systemd/user/obex.service
+
+gast@gast-pc:/$ systemctl --global --user is-enabled obex
+enabled
+
+gast@gast-pc:/$ ps -aux | grep bluetoothd
+root     20585  0.0  0.1  66040  4168 pts/2    S    12:18   0:00 sudo bluetoothd --compat
+root     20586  0.0  0.1  36748  4568 pts/2    S    12:18   0:00 bluetoothd --compat
+gast     28367  0.0  0.0  14788   964 pts/2    S+   15:41   0:00 grep --color=auto bluetoothd
+gast@gast-pc:/$ kill -9 20585
+bash: kill: (20585) - Vorgang nicht zulässig
+gast@gast-pc:/$ sudo kill -9 20585
+[2]-  Getötet                sudo bluetoothd --compat  (wd: ~/Schreibtisch/agl_microservice/bluetooth_gastpc_test)
+(gegenwärtiges Arbeitsverzeichnis ist: /)
+gast@gast-pc:/$ sudo kill -9 20586
+
+
+auch gesendeten/empfangenen Text anzeigen: fragt sich wie unterscheiden ob erhaltenes Text oder Binary ist?!
+
+zustimmung ascii code, char, decimal stimmt irgendwie nicht, a wäre nämlich dezimal 97 usw.
+auch die Reihenfolge der Buchstaben ist falsche, also ist es wohl parese fehler --> aktuell binary_text_disting.c ist korrekt, jetzt übernehmen in QT!
+---> in QT heißt Funktion "print_msg"  (textwiedergabe aus bluetooth-addresse übernehmen)
+
+evtl brauche ich das Q_PROPERTY usw. gar nicht und der String reicht mir ?  ---> software müsste passen, next testen
+
+wenn Nachricht erhalten wurde, wird Bth_msg_recv abgefragt/getriggered. Hier dann einbauen, ob Text oder sprachnachricht.
+ich habe es in bth_recv_message getan aber erhalte erst die ausgabe nach erneutem klicken auf bt_server, nicht direkt beim Einlsesn.
+
+Das Entscheiden ob binary/text klappt jetzt, aber die Wiedergabe in motalk noch nicht.
+File wird erst geparsed, wenn bt_server an ist.   Die Ausgabe der Buchstaben klappt nun :-)
+
+
+sprachnachricht senden scheiter nachwievor. aber nur, wenn ich sie in meinem Programm sende, die Datei über Obex wird komplett gesendet.
+Evtl kleinere chunks einlesen und dann zusammenbinden?
+siehe Unterschiede ~/jabra_cap_hex.c und msg_recvd_hex.c 
+
+ich extrahiere die bt_server-Funktion und teste das einzeln
+
+es werden nur 23920bytes empfangen
+wenn ich bt_buf vergrößere, werden viel mehr Daten gesendet, aber auch doppelt evtl ?! (normal sind 476280Byte )
+das jabra_capture.wav file senden von cloudlab (stand dez 8, 16:39) und vergleiche mit qt_msg, welche Daten passen. 
+Dann unter buf/bt_buf schauen ?!
+
+
+qt_msg_recvd.c beginnt der Payload viel später (circa bei 0x29c0 statt bei 0x6a0 wie in jabra_capture.c)  und davor bloß 0x00 / Zeile 669 zu 107
+
+zwischen den Payload-Blöcken kommen sehr viele 0x00 bei msg_recvd, zB 0x11180 zu 0x1ba0. Zeile 4377 zu 443
+
+neuer versuch mit 1000Byte:  0xa80 in Zeile 169
+
+das empfangene wiederholt sich, sprich erst habe ich chunk 1, dann chunk 1+2, dann chunk 1+2+3, usw. 
+bei richtigem file ist das durchgehend gereiht, chunk1, chunk2, usw.
+
+anshceinend ist Mindestgröße für bt_buf 1008, weil dann muss beim einlesen nicht immer 1000+ 8, 1000 +8 gelesen.
+wenn bt_buf = 1008 ist das anfangs genau gleich wie jabra_capture.c
+aber warum endet Übertragung bei 23184 Byte ?  (jabra_capture ist 476280, ist also ziemlich genau 20mal so groß)
+
+aktuell bricht es nach 23 Durchläufen ab, braucht aber insgesamt 473 Durchläufe --> Also schleife * 21
+bei for-schleife bricht es einfach nach der 23.durchlauf ab, evtl dauert das File öffnen/shcließen zu lange?! --> nein, brihct auch ohne write-befehl ab
+
+das erhöhen von bt_buf auf zB 2048 macht keinen Unterschied sondern nur das empfangene File kaputt. das bedeutet, dass von 2048Bytes dann 1008 payload und der rest padding mit 0x00 ist.
+möglihcerweise muss ich beim Senden file aufteilen statt alles auf einmal zu senden
+
+https://espressif-docs.readthedocs-hosted.com/projects/espressif-esp-faq/en/latest/software-framework/ble-bt.html
+
+What is the maximum MTU Size of ESP32 Classic Bluetooth?-->
+ESP32 Classic Bluetooth has two protocols, namely A2DP and SPP. The maximum MTU Size setting of BT A2DP (default) is 1008 bytes, of which the header occupies 12 bytes and the actual amount of data transmitted by the application layer is 1008 - 12 = 996 (bytes); the maximum MTU Size of BT SPP (default) Set to 990 bytes.
+
+
+Hier liegt wohl der Fehler, also muss ich beim Senden aufteilen?! --> Wenn ich beim Sender aufteile, kann ich zwar mehr Daten senden aber der Empfang stimmt nicht mehr. 
+Evtl aufteilen in Pakete mit 996Bytes, wie oben geschrieben: 1008 - 12 (header) = 996 (bytes)
+
+aktuell zuviele 0er-Blöcke beim Einlesen.
+Größe eines Nuller-Blocks: cff0 - cbf0 = ff0 - bf0 = 15*16² + 15*16 - (11*16² + 15*16) = 15*16² - 11*16² = 1024 -> das bedeutet jeder zweite Buffer-Block ist leer.
+		---> entsprechend in Software berücksichtigen. Beim Parsen nur Blöcke in File schreiben, die nicht so viele Nullen haben.
+	--> wichtig: bei btmon werden die Nuller-Blöcke nicht angezeigt, möglihcerweise hängt das damit zusammen, dass ich zwei buffer habe, bt_buf und bloß buf, die dann zusammengefügt werden ?!
+
+
+zum Testen: erst bluetooth setup skript, dann qt_btservertest, dann auf cloudlab rfcomm_client und jabra_capture.wav in gleichem ordner damit es nicht velroren geht und testdaten übereinstimmen
+im Home-Ordner sind die empfangenen Audio-Dateien
+
+test von gast-pc an cloudlab mit Tonübertragung ?! --> Tonübertragung von gast-pc an cloud-lab passt, also evtl liegt es am Bluetooth-Modul, dass umgekehrte Übertragung nicht klappt 
+( gcc -g3 -o qt_btservertest qt_btservertest.c -L/home/gast/Schreibtisch/agl_microservice/bluetooth_raspi/bt_cpp/comp_files -I/home/gast/Schreibtisch/agl_microservice/sdk/sysroots/corei7-64-agl-linux/usr/include/bluetooth/ -lbluetooth  )
+
+--> Wiedergabe klappt jetzt grob, wenn auch Fehlermeldung underrun occured auftritt. Und das klappt vorerst nur, weil auf gegenseite chunks in kleinere Chunks unterteilt wurden?!
+
+Eventuell klappt das Filesenden auf seiten von CLoud-Lab an gast-pc nicht so richtig?
+
+der Fehler liegt wahrscheinlich nicht beim empfangen am gast-pc, sondern beim Aufnehmen und versenden der Motalk-App. Aus diesem grund die Ausgabe per hex-stream wiedergeben und vergleichen.
+Hex-Ausgabe ist eingebaut, jetzt nur noch auf cloudlab übertragen und dann testen
+
+next: bei erhaltener text-Nachricht einen roten Punkt auf type-message setzen --> erledigt
+
+die Datenstream ausgabe in Motalk klappt auch auf lcoudlab, die Datenmenge ist viel mehr als die gesendeten 23kB.
+Die Übertragung der ersten 772Zeilen*60Zeichen = ~ 46kB ist idnetisch, bloß dann reißt Übertragung ab?! 
+
+An der Hardware selbst liegt es zu 99% nicht, weil senden mit bluetooth-sendto klappt.
+
+evtl mal btmon bluetooth-sendto mit Motalk vergleichen?
+
+The bluez version of your Ubuntu based device: (bluetoothctl --version)   gast-pc: 5.48   cloud-lab: 5.53
+Bluetooth adapter information: (hciconfig -a)  
+gast-pc:    
+hci0:	Type: Primary  Bus: USB
+	BD Address: A8:6D:AA:B0:2D:49  ACL MTU: 1021:4  SCO MTU: 96:6
+	UP RUNNING PSCAN ISCAN 
+	RX bytes:73827 acl:340 sco:0 events:5057 errors:0
+	TX bytes:2964463 acl:2469 sco:0 commands:2509 errors:0
+	Features: 0xff 0xfe 0x0f 0xfe 0xdb 0xff 0x7b 0x87
+	Packet type: DM1 DM3 DM5 DH1 DH3 DH5 HV1 HV2 HV3 
+	Link policy: RSWITCH HOLD SNIFF 
+	Link mode: SLAVE ACCEPT 
+	Name: 'gast-pc'
+	Class: 0x1c0100
+	Service Classes: Rendering, Capturing, Object Transfer
+	Device Class: Computer, Uncategorized
+	HCI Version: 4.2 (0x8)  Revision: 0x100
+	LMP Version: 4.2 (0x8)  Subversion: 0x100   // LMP (Link Manager Protocol) LMP 8 - Bluetooth Core-Spezifikation 4.2
+	Manufacturer: Intel Corp. (2)
+
+
+
+cloud-lab:
+Unterschiede:	RX bytes: 812 acl:0
+		TX bytes: 4448 acl: 0
+		class: 0x1c010c
+		Device Class: Computer, Laptop
+		HCI Version: 4.0 (0x6)  Revision: 0xe00
+		LMP Version: 4.0 (0x6)  Subversion: 0xe00	// LMP (Link Manager Protocol), LMP 6 - Bluetooth Core-Spezifikation 4.0
+
+zu BLuetooth Speizfikation 4.0 zu 4.2.: Bei Bt 4.2 wurde an der Datenpaketlänge gedreht, um eine 2,5-fache Geschwindigkeitssteigerung herauszuholen.
+	( https://www.elektronik-kompendium.de/sites/kom/1805171.htm) 
+
+Debug-logs:
+/var/log/syslog - The bluetooth daemon (bluetoothd), pulseaudio and ofono daemons output their verbose logging to syslog when enabled. It is the source of the state of the Bluetooth stack and other involved components used to understand what has happened on the Bluetooth stack level
+
+/home/phablet/.cache/upstart/application-legacy-ubuntu-system-settings.log - The Ubuntu System Settings on the Ubuntu Touch devices (phone, tablet) logs here. It is useful for knowing what is happening on the level above the Bluetooth stack itself.
+
+/home/phablet/.cache/upstart/dbus.log - DBus is the IPC communication layer between the Ubuntu System Settings and the Bluetooth stack. DBus saves its debug information to this log file which can be useful to tell if both of the parties are able to communicate.
+
+
+sudo btmon - In general the term “HCI trace” refers to the sniffed communication between the Bluetooth host (which means the software stack) and the Bluetooth controller (which means the chip). It contains the full communication between these two and thus can be used to retrace the exact chain of commands / events. In many cases, it is extremely helpful
+
+Enable verbose logging for bluetoothd:  sudo sed -i 's/bluetoothd/bluetoothd \-d/g' /lib/systemd/system/bluetooth.service
+sudo btmon --write ~/hcitrace.snoop | tee ~/hcitrace.txt
+grep ‘bluetoothd’ ./syslog > syslog-light
+
+cat /lib/systemd/system/bluetooth.service
+
+zu bluetooth device class:	
+0x1c010c 	000111000000000100001100 	20,19,18 | 8 | 3,2Major Service Class
+CoD Bit 20: Object Transfer (v-Inbox, v-Folder, …)
+CoD Bit 19: Capturing (Scanner, Microphone, …)
+CoD Bit 18: Rendering (Printing, Speaker, …)
+Major Device Class
+CoD Bits 8: Computer (desktop,notebook, PDA, organizers, …. )
+Minor Device Class
+CoD Bits 2,3: Laptop
+
+0x1c0100 	000111000000000100000000
+CoD Bit 20: Object Transfer (v-Inbox, v-Folder, …)
+CoD Bit 19: Capturing (Scanner, Microphone, …)
+CoD Bit 18: Rendering (Printing, Speaker, …)
+Major Device Class
+CoD Bits 8: Computer (desktop,notebook, PDA, organizers, …. )
+Minor Device Class
+CoD Bits 2,3: Uncategorized, code for device not assigned
+
+
+
+
+aus Software:
+Output of ba-Stream of length: 441000
+93744 Bytes have been transmitted
+
+---> neuer Test, while-Schleife laufen lassen bi bytessent = 0 --> next: testen
+
+(bug1: bleibt hängen, wenn kein headset angeschlossen ist aber trotzdem voice gesendet wird - liegt aber evtl an do-while-Test?)
+(bug2: wenn ich file auf lcoudlab sende un abhöre, kann ich danach kein neues voicefile senden bzw. wird sich aufgezeichnet und bei bytessent steht immer 93744, früher 441000,
+	ändert sich auch nicht, wenn ich manuell altes receive-file lösche, dann wird einfach überhaupt kein File mehr erstellt, erst wenn ich App neustarte klappt es wieder)
+(bug3: ankommende Files werden als Text erkannt obwohl voice-message)
+(bug4: auch bei Textnachrichten wird nur das erste gesendete File erkannt und aufgezeichnet) 
+   
+debuggen bug 4:
+das Problem liegt darin, dass die Funktion bt_server bzw. bt_recv_on_off nur einmal aufgerufen wird. --> evtl nach Nachricht lesen bzw. voice-abhören gleich direkt bt_recv_on_off neu starten, 
+weil das bt_server neu starett
+
+threading nochmal anschauen. How to gdb a thread?
+Watchpoint 3/4 (--> server_socket and client_socket) deleted because the program (bt_server) has left the block in which its expression is valid.
+
+<
+ automatic notification of new threads
+‘thread thread-id’, a command to switch among threads
+‘info threads’, a command to inquire about existing threads 
+>
+
+
+also bei Erscheinen des App-Fenster laufen aktuell 
+(gdb) info threads
+  Id   Target Id         Frame
+* 1    Thread 0x7ffff7fcf5c0 (LWP 19308) "merged_QML_inpu" main (argc=1, argv=0x7fffffffe048) at ../merged_QML_input_test/main.cpp:51
+  2    Thread 0x7fffeba32700 (LWP 19335) "QXcbEventReader" 0x00007ffff55cfbb9 in __GI___poll (fds=0x7fffeba31d28, nfds=1, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
+  3    Thread 0x7fffe15f2700 (LWP 19336) "gmain" 0x00007ffff55cfbb9 in __GI___poll (fds=0x555555962110, nfds=1, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
+  4    Thread 0x7fffe0df1700 (LWP 19337) "gdbus" 0x00007ffff55cfbb9 in __GI___poll (fds=0x555555971e60, nfds=2, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
+  5    Thread 0x7fffdb175700 (LWP 19338) "QDBusConnection" 0x00007ffff55cfbb9 in __GI___poll (fds=0x7fffd000f740, nfds=4, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
+  6    Thread 0x7fffda974700 (LWP 19379) "QQmlThread" 0x00007ffff55cfbb9 in __GI___poll (fds=0x7fffc8002ce0, nfds=1, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
+  7    Thread 0x7fffccf8e700 (LWP 19406) "llvmpipe-0" 0x00007ffff5e5aad3 in futex_wait_cancelable (private=<optimized out>, expected=0, futex_word=0x555555bc3f90)
+    at ../sysdeps/unix/sysv/linux/futex-internal.h:88
+  8    Thread 0x7fffc4563700 (LWP 19407) "llvmpipe-1" 0x00007ffff5e5aad3 in futex_wait_cancelable (private=<optimized out>, expected=0, futex_word=0x555555bc40f8)
+    at ../sysdeps/unix/sysv/linux/futex-internal.h:88
+
+
+bei Klick auf bt_server in App:
+Thread 1 "merged_QML_inpu" hit Breakpoint 2, BackendStuff::bt_recv_onoff (this=0x5555565437f0, bt_on=true) at ../merged_QML_input_test/backendstuff.cpp:423
+(gdb) 
+(gdb) cContinuing.
+bluetooth recv thread started
+[New Thread 0x7fffbbfff700 (LWP 19492)]
+[Switching to Thread 0x7fffbbfff700 (LWP 19492)] -->bt_server?
+
+bei Klicken auf BLuetooth-send in Cloud-Lab kommt folgender Output:
+[Thread 0x7fffbbfff700 (LWP 19492) exited]
+
+--> das bedeutet nachdem Senden wurde Thread bt_server gestoppt?!
+
+
+zu Beginn:
+(gdb) info threads
+  Id   Target Id         Frame
+* 1    Thread 0x7ffff7fcf5c0 (LWP 19755) "merged_QML_inpu" main (argc=1, argv=0x7fffffffe048) at ../merged_QML_input_test/main.cpp:41
+
+
+dann:
+[New Thread 0x7fffeba32700 (LWP 19787)]
+...
+[New Thread 0x7fffc4563700 (LWP 19795)]
+(Qt-Threads)
+ 
+zu B bei Beginn von bt_recv_onoff
+(gdb) info threads
+  Id   Target Id         Frame
+* 1    Thread 0x7ffff7fcf5c0 (LWP 19755) "merged_QML_inpu" BackendStuff::bt_recv_onoff (this=0x555556538ce0, bt_on=true) at ../merged_QML_input_test/backendstuff.cpp:423
+...
+  8    Thread 0x7fffc4563700 (LWP 19795) "llvmpipe-1" 0x00007ffff5e5aad3 in futex_wait_cancelable (private=<optimized out>, expected=0, futex_word=0x555555bc1f6c) at ...unix/sysv/linux/futex-internal.h:88
+
+mit btrcv = std::thread{&BackendStuff::bt_server, this}; wird neuer Thread gestartet
+
+[New Thread 0x7fffc0422700 (LWP 19941)]
+std::thread::thread<void (BackendStuff::*)(), BackendStuff*> (this=0x7fffffffaf98, __f=@0x7fffffffafa0: (void (BackendStuff::*)(BackendStuff * const)) 0x55555555ca8a <BackendStuff::bt_server()>)
+    at /usr/include/c++/7/thread:130
+--> Thread 0x7fffc0422700 (LWP 19941) "merged_QML_inpu" 0x00007ffff55cfbb9 in __GI___poll (fds=0x7fffc04216b8, nfds=1, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
+
+Frage: wo genau wird bt_server thread verlassen? --> mit Verlassen von bt_server
+ Im Grunde fragen nochmal was genau std.thread detach usw. nochmal macht, bisher läuft es nur genau einmal durch?
+---> stakoverflow: A thread runs its function only once. When the function exits, that's it, the thread is done. You can't restart the thread, all you can do is create a new thread.
+->mit while-loop innerhalb von thread bt_server klappt nun das erneute senden.
+
+(bug 5: die alte Text-Nachricht wird nicht gelöscht, bloß weiter geschrieben)
