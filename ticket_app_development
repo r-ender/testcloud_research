@@ -5442,7 +5442,17 @@ As you can see the Heart Rate services uses 0x180D, which is a 16-bit short form
 
 OBEX (object exchange) is like client-server programming. One BT device is a server to receive files and the other one is a client to send files. For example, I run obexpushd in Android Dev phone, and it
 becomes an OBEX server. It would start to LISTEN rfcomm connections. Then you can use other BT devices to send files to this phone.
-Furthermore, I can run obexftpd in Android Dev phone, and it becomes a client. It would CONNECT with a rfcomm connection and it can send file
+Furthermore, I can run obexftpd
+To send a file to a device run the command:
+
+$ obexftp -b MAC_address -p /path/to/file
+
+To retrieve a file from a device run the command:
+
+$ obexftp -b MAC_address -g filename
+
+
+ in Android Dev phone, and it becomes a client. It would CONNECT with a rfcomm connection and it can send file
 to that connection. https://i-miss-erin.blogspot.com/2009/06/bluetooth-obex-file-sharing-in-android.html
 
 https://github.com/njkevlani/bluetooth-file-transfer/blob/master/File-Transfer/Client/client.c
@@ -6974,7 +6984,8 @@ hci0:	Type: Primary  Bus: USB
 
 
 cloud-lab:
-Unterschiede:	RX bytes: 812 acl:0
+Unterschiede:	ACL MTU: 1021:5
+		RX bytes: 812 acl:0
 		TX bytes: 4448 acl: 0
 		class: 0x1c010c
 		Device Class: Computer, Laptop
@@ -6983,6 +6994,19 @@ Unterschiede:	RX bytes: 812 acl:0
 
 zu BLuetooth Speizfikation 4.0 zu 4.2.: Bei Bt 4.2 wurde an der Datenpaketlänge gedreht, um eine 2,5-fache Geschwindigkeitssteigerung herauszuholen.
 	( https://www.elektronik-kompendium.de/sites/kom/1805171.htm) 
+
+Bluetooth ACL: A connection must be explicitly set up and accepted between two devices before packets can be transferred. ACL links are disconnected after timeout (default 20 sec) 
+Bluetooth SCO: The type of radio link used for voice data. A SCO link is a set of reserved time slots on an existing ACL link
+Bluetooth LMP: Used for control of the radio link between two devices, highe, dmv, querying device abilities and power control. Implemented on the controller. 
+Bluetooth HCI: Standardized communication between the host stack (e.g., a PC or mobile phone OS) and the controller (the Bluetooth integrated circuit (IC)).
+
+L2CAP: part ot bt protocol stack. L2CAP is used to communicate over the host ACL link. Its connection is established after the ACL link has been set up. 
+	It passes packets to either the Host Controller Interface (HCI) or, on a hostless system, directly to the Link Manager/ACL link.
+	In basic mode, L2CAP provides packets with a payload configurable up to 64 kB, with 672 bytes as the default MTU, and 48 bytes as the minimum mandatory supported MTU.
+RFCOMM: The Bth protocol RFCOMM is a simple set of transport protocols, made on top of the L2CAP protocol, providing emulated RS-232 serial ports (up to sixty simultaneous connections to a Bth 		device at a time). RFCOMM provides a simple reliable data stream to the user, like TCP, used directly by many telephony related profiles as a carrier for AT commands, also for OBEX over Bt. 
+	Note: RFCOMM don't actually support setting the MTU since it is a stream.
+OBEX:	Object exchange (OBEX; also termed IrOBEX) is a communications protocol that facilitates the exchange of binary objects between devices.
+
 
 Debug-logs:
 /var/log/syslog - The bluetooth daemon (bluetoothd), pulseaudio and ofono daemons output their verbose logging to syslog when enabled. It is the source of the state of the Bluetooth stack and other involved components used to understand what has happened on the Bluetooth stack level
@@ -7020,8 +7044,6 @@ Minor Device Class
 CoD Bits 2,3: Uncategorized, code for device not assigned
 
 
-
-
 aus Software:
 Output of ba-Stream of length: 441000
 93744 Bytes have been transmitted
@@ -7031,8 +7053,8 @@ Output of ba-Stream of length: 441000
 (bug1: bleibt hängen, wenn kein headset angeschlossen ist aber trotzdem voice gesendet wird - liegt aber evtl an do-while-Test?)
 (bug2: wenn ich file auf lcoudlab sende un abhöre, kann ich danach kein neues voicefile senden bzw. wird sich aufgezeichnet und bei bytessent steht immer 93744, früher 441000,
 	ändert sich auch nicht, wenn ich manuell altes receive-file lösche, dann wird einfach überhaupt kein File mehr erstellt, erst wenn ich App neustarte klappt es wieder)
-(bug3: ankommende Files werden als Text erkannt obwohl voice-message)
-(bug4: auch bei Textnachrichten wird nur das erste gesendete File erkannt und aufgezeichnet) 
+(bug3: ankommende Files bei Cloud-Lab werden als Text erkannt obwohl voice-message)
+(bug4: auch bei Textnachrichten wird nur das erste gesendete File erkannt und aufgezeichnet --> behoben) 
    
 debuggen bug 4:
 das Problem liegt darin, dass die Funktion bt_server bzw. bt_recv_on_off nur einmal aufgerufen wird. --> evtl nach Nachricht lesen bzw. voice-abhören gleich direkt bt_recv_on_off neu starten, 
@@ -7046,21 +7068,6 @@ Watchpoint 3/4 (--> server_socket and client_socket) deleted because the program
 ‘thread thread-id’, a command to switch among threads
 ‘info threads’, a command to inquire about existing threads 
 >
-
-
-also bei Erscheinen des App-Fenster laufen aktuell 
-(gdb) info threads
-  Id   Target Id         Frame
-* 1    Thread 0x7ffff7fcf5c0 (LWP 19308) "merged_QML_inpu" main (argc=1, argv=0x7fffffffe048) at ../merged_QML_input_test/main.cpp:51
-  2    Thread 0x7fffeba32700 (LWP 19335) "QXcbEventReader" 0x00007ffff55cfbb9 in __GI___poll (fds=0x7fffeba31d28, nfds=1, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
-  3    Thread 0x7fffe15f2700 (LWP 19336) "gmain" 0x00007ffff55cfbb9 in __GI___poll (fds=0x555555962110, nfds=1, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
-  4    Thread 0x7fffe0df1700 (LWP 19337) "gdbus" 0x00007ffff55cfbb9 in __GI___poll (fds=0x555555971e60, nfds=2, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
-  5    Thread 0x7fffdb175700 (LWP 19338) "QDBusConnection" 0x00007ffff55cfbb9 in __GI___poll (fds=0x7fffd000f740, nfds=4, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
-  6    Thread 0x7fffda974700 (LWP 19379) "QQmlThread" 0x00007ffff55cfbb9 in __GI___poll (fds=0x7fffc8002ce0, nfds=1, timeout=-1) at ../sysdeps/unix/sysv/linux/poll.c:29
-  7    Thread 0x7fffccf8e700 (LWP 19406) "llvmpipe-0" 0x00007ffff5e5aad3 in futex_wait_cancelable (private=<optimized out>, expected=0, futex_word=0x555555bc3f90)
-    at ../sysdeps/unix/sysv/linux/futex-internal.h:88
-  8    Thread 0x7fffc4563700 (LWP 19407) "llvmpipe-1" 0x00007ffff5e5aad3 in futex_wait_cancelable (private=<optimized out>, expected=0, futex_word=0x555555bc40f8)
-    at ../sysdeps/unix/sysv/linux/futex-internal.h:88
 
 
 bei Klick auf bt_server in App:
@@ -7108,4 +7115,265 @@ Frage: wo genau wird bt_server thread verlassen? --> mit Verlassen von bt_server
 ---> stakoverflow: A thread runs its function only once. When the function exits, that's it, the thread is done. You can't restart the thread, all you can do is create a new thread.
 ->mit while-loop innerhalb von thread bt_server klappt nun das erneute senden.
 
-(bug 5: die alte Text-Nachricht wird nicht gelöscht, bloß weiter geschrieben)
+(bug5: die alte Text-Nachricht wird nicht gelöscht, bloß weiter geschrieben --> gelöst :) hatte printmsg.clear vor printmsg.append vergessen )
+
+Idee: beim ersten Start von Motalk Autodaten abfragen in "friendlyName" von Bluetooth Autofarbe und -modell, Kennzeichen schreiben?! 
+(die MAC-adresse liefert AGL, das im Auto installiert sein muss, damit die app funktioniert)
+
+< AGL is currently being used in production and is on the road today in Toyota and Lexus vehicles globally as well as the Subaru Outback and Legacy >
+
+( A list of additional products and services that support AGL are available in the AGL Vendor Marketplace. )  Evtl wollen die meine Idee abkaufen?!
+ Operating system in car: companies like Volvo or Polestar rely on third-party providers like Google is actually the better one 
+Volkswagen - VW-OS?!  deutsche Hersteller haben noch kein eigenes fertiges OS
+VW and Mercedes–Benz, are talking about developing their own car OS. Does this mean they are considering a make instead of a buy decision? This strategy does not come without risk.
+To develop an OS is a monumental task, and the OS may have a lifetime of 30 to 40 years with regular updates and continuous technical improvements. Linux has about 30 years of development, while QNX has nearly 40 years of development.
+To develop a car OS will require a great deal of technological expertise, which is in limited supply, and will require multiple years of development.
+GM’s strategy of using a Red Hat Linux with functional–safety certification is a much better approach to get its own OS for complex ECUs.
+)
+
+General Motors is set to roll out Ultifi, a new end-to-end software platform in vehicles starting in 2023. Mercedes-Benz relies on a proprietary operating system branded MB.OS (Mercedes-Benz Operating System) to power its future car models. MB.OS is being developed in-house and is scheduled for market launch in 2024. Volkswagen Group launched a new business unit called Car.Software in 2020 (now called CARIAD). CARIAD aims to build a uniform software and technology platform for all brands in the Volkswagen Group, including a unified operating system and the Volkswagen Automotive Cloud. The operating system goes under name VW.OS and allows the Volkswagen Group to have a unified platform for logging, power management, computing, security and over-the-air updates. 
+Android Auto is the first layer of its connected car stack. The second layer is integrating Android Automotive OS in next-generation infotainment systems. The third layer includes Google Automotive Services (GAS), enabling a deeper integration of the Google ecosystem and Google based services in the connected car and infotainment systems. The first vehicle to benefit from GAS was the Polestar 2, an all-electric vehicle developed by Volvo’s standalone electric performance brand.
+
+
+Downlaod VW-OS um App zu testen ?!
+
+bug7: gesendete voice-message wird auf cloud- lab und gast-pc als textnachricht erkannt was zu rotem punkt auf textfeld führt?!
+Aber das mehrfache senden von Dateien auf cloud-lab funktioniert nun immerhin.
+
+beim Wechseln des Headsets und von einsprechen erhalte ich auf cloudlab "error from read: input/output error" und programm reagiert nicht mehr --> funktion capture_voice
+
+cloudlab debug: rc = -5 (damit weder EPIPE,ESTRPIPE noch EBADFD)
+
+SND_PCM_NONBLOCK ?!
+
+error -5 : interleaved read from audio interface failed (Input/output error)
+2.1 State: SND_PCM_STATE_PREPARED
+
+If you did not set period_size, buffer_size or periods (period_time,
+buffer_time or periods) , you should call
+snd_pcm_hw_params_get_buffer_size() and snd_pcm_hw_params_get_period_size()
+after snd_pcm_hw_params()
+( https://alsa-devel.alsa-project.narkive.com/cPc93uGb/capturing-data-from-the-microphone )
+
+die Sprachaufzeichnung mit sendvoicemsg.c und wiedergabe mit listenmsg auf lcoudlab klappt   --> vergleich qt mit sendvoicemsg
+--> Fehler bei hw-config --> Lösung mit aplay -l --> card-Nr. : device-Nr. = hw:2,0
+
+das senden von cloud-lab in App klappt nachwievor nciht. das senden von gast-pc klappt auch wiederholt ohne Probleme (bis auf falsche Erkennung als text)
+
+voice send: die ersten 1470 Zeilen und somit 23184 Zeichen stimmen, jedoch mit einfachem do-while ansatz, wird das immer wiederholt.
+
+Bei cloudlab liegt es evtl gar nicht am zu sendenden File, sondern daran, dass die aufzeichnung selbst bereits fehlerhaft ist (vemrutlihc wegen HW_parametern)
+
+ich kann bei sendvoicemsg nur bis 115oooB senden und dann gibt es immer ein -1 zurück bei sendbytes zurück aber verlässt die Loop nicht ?!
+mit aufstückelung und in chunks senden klappt es (wichtig ist bei arays zu dereferenzierern, falls speicherplatz dynamisch allokiert wurde (mit malloc))
+
+wenn ein einzelner Sendevorgang nicht klappt und -1 bytessent transmitted wurden, springt bytessent irgendwie auf 4294967295 ?!
+
+vergleichen btmon für obexpush und mein Programm ob mir Fehler auffallen ?!
+
+es gibt ein Connection-Timeoutauf gast-pc Seite laut btmon. --> bluetooth-socket option anschauen
+
+---> bei sendvoicemsg (eigenkreieert) keine ACL-Aushandlung wie zB
+
+( OBEX source-code: https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/obexd/client/bluetooth.c )
+
+bei sendvoice Schlüsselasuhandlung bevor auf ACL-Ebene geswitcht wird
+ MGMT Event: New Link Key
+
+Unterschied sendvoicemsg zu obex!!!
+< ACL Data TX: Handle 256 flags 0x00 dlen 27                                                                                                                                           #48 [hci0] 66.152038
+      L2CAP: Configure Request (0x04) ident 4 len 19
+        Destination CID: 64
+        Flags: 0x0000
+        Option: Maximum Transmission Unit (0x01) [mandatory]
+          MTU: 1013
+        Option: Retransmission and Flow Control (0x04) [mandatory]
+> HCI Event: Number of Completed Packets (0x13) plen 5                                                                                                                                 #50 [hci0] 66.157516
+        Num handles: 1
+        Handle: 256
+        Count: 1
+> ACL Data RX: Handle 256 flags 0x02 dlen 27   
+
+
+
+zu 
+
+< ACL Data TX: Handle 256 flags 0x00 dlen 23                                  #36 [hci0] 23.380113
+      L2CAP: Configure Request (0x04) ident 4 len 15
+        Destination CID: 64
+        Flags: 0x0000
+        Option: Retransmission and Flow Control (0x04) [mandatory]
+          Mode: Basic (0x00)
+> HCI Event: Number of Completed Packets (0x13) plen 5                        #37 [hci0] 23.386627
+        Num handles: 1
+        Handle: 256
+        Count: 1
+> ACL Data RX: Handle 256 flags 0x02 dlen 23    
+
+
+
+nochmal sendovicemsg zu obexpush:
+      L2CAP: Configure Response (0x05) ident 4 len 10
+        Source CID: 64
+        Flags: 0x0000
+        Result: Success (0x0000)
+        Option: Maximum Transmission Unit (0x01) [mandatory]
+          MTU: 1021
+
+zu
+
+   L2CAP: Configure Response (0x05) ident 4 len 10
+        Source CID: 64
+        Flags: 0x0000
+        Result: Success (0x0000)
+        Option: Maximum Transmission Unit (0x01) [mandatory]
+          MTU: 672
+
+
+bei obexpushd folgt später noch schlüsselaustausch und dann
+ACL Data TX: Handle 256 flags 0x00 dlen 23                                  #63 [hci0] 24.527525
+      L2CAP: Configure Request (0x04) ident 5 len 15
+        Destination CID: 65
+        Flags: 0x0000
+        Option: Retransmission and Flow Control (0x04) [mandatory]
+          Mode: Enhanced retransmission (0x03)
+          TX window size: 63
+          Max transmit: 3
+          Retransmission timeout: 2000
+          Monitor timeout: 12000
+          Maximum PDU size: 1009
+
+
+Aberk ein rfcomm - im Gegensatz zu sendovicemsg, das auf rfcomm setzt:
+     Channel: 64 len 14 [PSM 3 mode 0] {chan 0}
+      RFCOMM: Unnumbered Info with Header Check (UIH) (0xef)
+         Address: 0x03 cr 1 dlci 0x00
+         Control: 0xef poll/final 0
+         Length: 10
+         FCS: 0x70
+         MCC Message type: DLC Parameter Negotiation CMD (0x20)
+           Length: 8
+
+
+sendvoicemsg:
+> ACL Data RX: Handle 256 flags 0x01 dlen 329                                                                                                                                         #127 [hci0] 98.041550
+      Channel: 64 len 1013 [PSM 3 mode 0] {chan 0}
+      RFCOMM: Unnumbered Info with Header Check (UIH) (0xef)
+         Address: 0x0b cr 1 dlci 0x02
+         Control: 0xef poll/final 0
+         Length: 28675
+
+
+
+change MTU:	https://stackoverflow.com/questions/65737192/how-to-get-set-bluetooth-mtu-value-in-linux-with-command-line-tool-hciconfig-bl ?!
+		https://manpages.debian.org/unstable/bluez/hciconfig.1.en.html
+		https://git.kernel.org/pub/scm/bluetooth/bluez.git/tree/doc/gatt-api.txt
+		You should also enable Data Length Extention ( --> ist das dlen, falls ja, dann ist es an ?!) if your phone and device supports it. 
+		This will allow you to transmit multiple MTUs throughout the connection event.
+
+	https://stackoverflow.com/questions/63590616/what-is-the-maximum-att-mtu-allowed-by-bluetooth-le	!!
+
+		On your Peripheral , you can set the MTU size by modifying config file as you already know. For example, 
+
+.gatt_cfg = /* GATT configuration */
+{
+.appearance = APPEARANCE_GENERIC_TAG, /**< GATT appearance (see gatt_appearance_e) */
+.client_max_links = 2, /**< Client config: maximum number of servers that local client can connect to */
+.server_max_links = 1, /**< Server config: maximum number of remote clients connections allowed by the local */
+.max_attr_len = 244, 
+.max_mtu_size = 247 
+},
+
+oder bei sockets mit getsocketoptions: adjust the MTU for an L2CAP connection, Bluetooth allows the MTU to range from a minimum of 48 bytes to a maximum of 65,535 bytes
+
+Ich verwende aktuell RFCOMM, aber RFCOMM ist ähnlich TCP und wird in L2CAP eingekapselt, außerdem gibt es RFCOMM seit bluetooth 4.0 gar nicht mehr ?!
+
+rfcomm_server wird jetzt als l2cap server getestet:
+gcc -g3 -o rfcomm_server rfcomm_server.c -L/home/gast/Schreibtisch/agl_microservice/bluetooth_raspi/bt_cpp/comp_files -I/home/gast/Schreibtisch/agl_microservice/sdk/sysroots/corei7-64-agl-linux/usr/include/bluetooth/ -lbluetooth
+
+
+ To adjust the connection-wide MTU, both clients must adjust their outgoing and incoming MTUs.
+output rfcomm_server: opts.omtu = 0, opts.imtu = 21984
+
+die mtu in rfcomm_server und sendvoicemsg.c passt überein aber sendvoicemsg zeigt connection refused an wegen:
+bluetoothd: Authentication attempt without agent                                   [hci0] 89.992730
+= bluetoothd: Message Notification rejected CC:3D:82:39:9B:61: org.bluez.Error.Rejected 
+---> add device to trusted devices. Jetzt "MEssage too lon?!" --> das wird aber auch bei standard 672B angezeigt?
+Fehler: Unable to get io data for Message Notification: getpeername: Transport endpoint is not connected (107)
+
+(evtl lesen? --> https://fivedots.coe.psu.ac.th/~ad/jg/blue2/blueEcho2.pdf)
+
+Vorgehensweise: erstmal L2CAP-Verbindung ohne MTU-Size aufbauen.
+
+Das mit der höhren MTU-Verbindung ist etwas kompliziert, darum erstmal schauen, dass es so funktioniert und evtl mit anderem PC testen, evtl liegt es an diesem Rechner.
+Graphik anpassen.
+
+> ACL Data RX: Handle 256 flags 0x02 dlen 12            #120 [hci0] 1289.475622
+      L2CAP: Connection Request (0x02) ident 3 len 4
+        PSM: 4097 (0x1001)
+        Source CID: 64
+< ACL Data TX: Handle 256 flags 0x00 dlen 16            #121 [hci0] 1289.475683
+      L2CAP: Connection Response (0x03) ident 3 len 8
+        Destination CID: 0
+        Source CID: 64
+        Result: Connection refused - PSM not supported (0x0002)
+        Status: No further information available (0x0000)
+
+
+--> But as with other bluetooth applications, you of course must have a server listening on a given PSM for it to answer "Connection accepted" ?
+	I found that PSM (ports) below 0x1000 are reserved, and that in other bluetooth implementations inability to bind to these PSM is a feature (e.g jsr-82)
+	PSM stands for "Protocol Service Multiplexers", and are the L2CAP connection's "port". 
+
+Basically think of the CID as the port, or general communication endpoint. Connections are received on a specific CID and you can request connections on a specific CID. There are even Bluetooth SIG reserved CIDs which you can see in [Vol 3, Part A, Section 2.1]
+
+The PSM on the other hand can be thought of as an identifier for a specific service or device that is trying to connect to you (or for your own device if you are doing the connecting). For example a device requesting a connection to you may specify in documentation to look for a PSM of 0x80.
+mit l2cap_server und l2cap_client auf cloudlab klappt Verbindung, PSM stimmen auch überein.
+
+mit l2cap_server und l2cap_client scheint höhere mtu zu klappen. Jetzt gehe ich auf die 8-fache MTU hoch. Wird auch umgesetzt.
+Nach 3-4 Versuchen wird plötzlich angezeigt "no bytes received", ohne dass ich etwas geändert hätte. Auch das erabsetzen der mtu ändert nichts.
+
+Next: in l2cap_server.c debuggen, warum ich no bytes received erhalte. Während gleichzeitig das senden über motalk-app/rfcomm klappt
+
+wenn mehr Bytes übertragen werden als per MTU vereinbart, erscheint "Message too long" beim client und kein einziges Byte übertragen.
+(maximal 65534 pro Übertragung)
+Übertragung per L2cap funktioniert, jetzt versuche ich mal zwei Sockets gleichzeitig zu öffnen
+
+cloudlab fehler beim 2nd connect: status = -1  --> geht wohl nicht zwei Verbindungen gleichzeitig, darum Fokus auf eine Verbindung möglichst schnell abzuwickeln.
+
+/etc/bluetooth/main.conf --> set FastConnectable auf true
+systemctl restart bluetooth ---> hat sich wenig geändert (evtl sogar schneller immer neu connecten und verbindung trennen ?!)
+erstmal aktuellen stand implementieren, die möglichen Verbesserungen dann zukünftig einpflegen
+Idee:  length of the "characteristic DATA" , "long read / _ReadLong " ?!  
+(Clud-Lab hat noch Bluetooth 4.0, evtl ist darum die Sende-Geschwindigkeit viel langsamer.
+hcitool rssi ?  (rssi = received signal strength)
+
+< Transfer speeds for Bluetooth 1 were understandably slow. But thanks to Enhanced Data Rate (EDR), Bluetooth speeds have improved in the later versions.
+Currently, the speed difference between Bluetooth 4 and 5 is a no-brainer. The former has a maximum speed of 24 Mb/s, while the latter clocks in at 50 Mb/s. >
+
+Eigentlich kann Bt Version 4.0 (Bluetooth Classic (BR/EDR)) bis zu 3MB/s, evtl eine Möglichkeit doch Geschwindigkeit erhöhen ?  fachwort EDR (sudo btmgmt BREDR on)
+
+sudo btmgmt find |grep rssi |sort -n |uniq -w 33   ----> hci0 dev_found: CC:3D:82:39:9B:61 type BR/EDR rssi -40 flags 0x0000 
+
+< Bluetooth RSSI (Received Signal Strength Indicator).
+The signal is always better when the RSSI value is closer to zero. For example, a pretty good value is below -50, a fairly reasonable value is between -70 to -80, while -100 indicates no signal at all.
+
+die L2CAP-Sockets in bt_server eingebaut, das empfangen hat nicht geklappt (wurde nicht mitgeschrieben)
+ als nächstes in Motalk in bt_client einbauen und testen. Danach kommentare bereinigen und text/voice received nochmal überarbeiten.
+
+fehler unterscheidung binary - text entfernen: If a file contains only the decimal bytes 9–13, 32–126, it's probably a pure ASCII text file.
+mit dieser Zuweisung kann ich zwar ASCII code zählen, aber das File besteht nicht bloß aus Textzeichen, sondern auch Fillern, die 0 sind 
+(bei Sparachaufzeichnung sind auch zufällig manche hex-werte zwischen 32-126. Also gehe ich nach Rationalität, kein Tipptext ist zB länger als 1000 Zeichen
+
+fehler beim senden von voice-msg auf cloud-lab wegen "setSocketError: Invalid argument"
+
+bei bt_connect_l2cap:	
+(gdb) p SOL_L2CAP
+No symbol "SOL_L2CAP" in current context.
+(gdb) p L2CAP_OPTIONS
+No symbol "L2CAP_OPTIONS" in current context.
+(gdb) p opts
+$4 = {omtu = 65534, imtu = 65534, flush_to = 0, mode = 1 '\001'}
+(gdb) p optlen
+$5 = 8
+
+--> auch bei ändern der L2CAP_OPTIONS und manuell bt addresse eingeben bleibt es bei setsocketopt schlägt fehl.
