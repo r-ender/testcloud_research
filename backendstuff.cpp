@@ -26,6 +26,13 @@
 //#include <bluetooth_recv.h>
 //#include <time.h>
 //#include <QThread>
+//---test
+#include <sys/socket.h>
+#include <bluetooth.h>
+#include <l2cap.h>
+#include <fcntl.h>
+#include <unistd.h>
+
 
 
 //constructor
@@ -146,23 +153,19 @@ void BackendStuff::sendMessage(QString api, QString verb)
     call(api,verb,(QJsonValue)obj,nullptr);
 }
 
-void BackendStuff::bth_usage()
+void BackendStuff::bth_send()
 {
-    //test
     //qDebug() << "Output printmsg: " << printmsg << "   print_msg_recv: " << print_msg_recv();
-    //qDebug() << "Bluetooth-test-Bluetooth-test\n";
-
     Bluetooth_Wrapper bt_wrapper;
     int s, status;
 
-    s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);	//domain: bluetooth, type:data-stream, BT-Protocol: RFCOMM
+    s = socket(AF_BLUETOOTH,SOCK_SEQPACKET, BTPROTO_L2CAP); //L2CAP socket
 
     std::string bthadr = BluetoothAdr().toStdString();
 
-    std::cout << "User getter bluetooth addr: " << bthadr << std::endl;
+    //std::cout << "User getter bluetooth addr: " << bthadr << std::endl;
 
-    //status = bt_wrapper.bt_connect(s, (struct sockaddr *)&addr2, sizeof(addr2));	//connect to server
-    status = bt_wrapper.bt_connect(s,&bthadr);
+    status = bt_wrapper.bt_connect_l2cap(s,&bthadr);
 
     std::string output = m_UserInput.toStdString(); //convert QString to std::string
 
@@ -170,7 +173,6 @@ void BackendStuff::bth_usage()
     if( status == 0 ) {
         //status = bt_wrapper.bt_write(s, "hello!", 6);
         bt_wrapper.bt_write(s,&output[0],output.length()); //write-function requires void-pointer, hence the address of first element
-        //bt_wrapper.bt_write(s,output,output.length());
     }
 
     if( status < 0 ){
@@ -194,14 +196,15 @@ void BackendStuff::bt_voice_send()
     Bluetooth_Wrapper bt_wrapper;
     int s, status;
 
-    s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);	//domain: bluetooth, type:data-stream, BT-Protocol: RFCOMM
+    //s = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);	//domain: bluetooth, type:data-stream, BT-Protocol: RFCOMM
+    s = socket(AF_BLUETOOTH,SOCK_SEQPACKET, BTPROTO_L2CAP); //l2cap bt-voice send
 
     std::string bthadr = btaddr.toStdString();
 
-    std::cout << "User getter bluetooth addr: " << bthadr << std::endl;
+    //std::cout << "User getter bluetooth addr: " << bthadr << std::endl;
 
     //status = bt_wrapper.bt_connect(s, (struct sockaddr *)&addr2, sizeof(addr2));	//connect to server
-    status = bt_wrapper.bt_connect(s,&bthadr);
+    status = bt_wrapper.bt_connect_l2cap(s,&bthadr);
 
     QFile f("/tmp/jabra_capture.wav");
     if(f.open(QIODevice::ReadOnly))
@@ -217,73 +220,108 @@ void BackendStuff::bt_voice_send()
     }
 
     uint32_t original_balength=(uint32_t)ba.length();
-    //printf("Output of ba-Stream of length: %d\n", original_balength);
-    qDebug() << "Output of ba-Stream of length: " << original_balength;
-    /*
-    for(uint32_t z = 0; z< (uint32_t) (ba.length()); z++)
-    {
-        printf("%x", ba[z] & 0xff);
-    }*/
-
+    const uint32_t mtu = 65534;
 
     // send  message
     if( status == 0 ) {
+
+        uint32_t sendloops = original_balength/mtu;
+
+        for(uint8_t z=0; z < sendloops; z++)
+        {
+            //status = bt_wrapper.bt_write(s,&ba[z*mtu], mtu);
+            status = bt_wrapper.bt_write(s,ba.mid(z*mtu,mtu),mtu);
+            if(status < 0) perror("sending gone wrong!\n");
+        }
         //status = bt_wrapper.bt_write(s, "hello!", 6);
         //bt_wrapper.bt_write(s,&output[0],output.length()); //write-function requires void-pointer, hence the address of first element
         //while ( (uint32_t) bt_wrapper.bt_write(s,ba,ba.length() != 0)
+        /*
         uint32_t bytessent = 0;
-        //do{
-            bytessent = (uint32_t) bt_wrapper.bt_write(s,ba,ba.length());
-            qDebug() << bytessent << " Bytes have been transmitted\n";
-        //}while (bytessent != 0);
-            //if(bytessent != 0) bt_wrapper.bt_write(s,ba[bytessent],(uint32_t)ba.length() - bytessent);
+        uint32_t total_bytessent = 0;
+        uint32_t strsize = 5;
+        uint32_t leftover_balength = 0;
+        do{
+            //bytessent = (uint32_t) bt_wrapper.bt_write(s,ba,ba.length());
+            strsize = (uint32_t)ba.length() - total_bytessent;
+            bytessent = (uint32_t) bt_wrapper.bt_write(s,ba.mid(bytessent),strsize);
+            total_bytessent += bytessent;
+            leftover_balength = original_balength - total_bytessent;
+            qDebug() << total_bytessent << " Bytes have been transmitted and " << leftover_balength << " Bytes are left over\n";
+        }while ((bytessent > 2) && leftover_balength > 0);
+    */
     }
 
 
     if( status < 0 ){
         std::cout << "status: " << status << std::endl;
-        std::perror("uh oh - bt connecting and sending not possible");
+        std::perror("uh oh - bt connecting or sending not possible");
     }
     close(s);
-    //qDebug() << "End of bt_voice_send\n";
+
 }
 
 
 void BackendStuff::bt_server(void)
 {
         //qDebug() << "This is bt_server!\n";
-        //std::cout << "Thread-id: " << std::this_thread::get_id() << std::endl;
-
-        struct sockaddr_rc loc_addr;	/* local bluetooth adapter's info */
-        struct sockaddr_rc client_addr;	/* filled in with remote (client) bluetooth device's info */
+        //struct sockaddr_rc loc_addr;	/* local bluetooth adapter's info */
+        struct sockaddr_l2 loc_addr,rem_addr;  //local and remot structs bt-devices
         char buf[1024] = { 0 };
-        char bt_buf[80] = {0};
+        //char bt_buf[80] = {0};
+        char bt_buf[65534] = {0}; //max MTU for L2CAP Bluetooth
 
-        int bytes_read,server_sock, client_sock;
-        socklen_t opt = sizeof(client_addr);
+        int server_sock, client_sock;
+        socklen_t opt = sizeof(rem_addr);
+
+        uint16_t mtu = 65534;
+
+        // allocate socket
+        server_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP);
+
+        // bind socket to port 0x1001 of the first available
+        // bluetooth adapter
+        loc_addr.l2_family = AF_BLUETOOTH;
+        loc_addr.l2_bdaddr.b[0] = 0x00; loc_addr.l2_bdaddr.b[1] = 0x00; loc_addr.l2_bdaddr.b[2] = 0x00;
+        loc_addr.l2_bdaddr.b[3] = 0x00; loc_addr.l2_bdaddr.b[4] = 0x00; loc_addr.l2_bdaddr.b[5] = 0x00;
+        loc_addr.l2_psm = htobs(0x1001);
+
+        //MTU erhöhen ?!
+        struct l2cap_options {
+                uint16_t    omtu;
+                uint16_t    imtu;
+                uint16_t    flush_to;
+                uint8_t     mode;
+            };
+        struct l2cap_options opts;
+
+        int optlen = sizeof(opts), err;
+        opts.omtu = opts.imtu = mtu;
+
+        err = setsockopt(server_sock, SOL_L2CAP, L2CAP_OPTIONS, &opts, optlen );
+        if(err != 0)
+        {
+            printf("Error for setsockoptions occured: %s!\n",strerror(errno));
+        }
 
         struct pollfd btpoll;
 
+        /*
         //Handy-test
         //client_addr.rc_bdaddr = (sockaddr_rc).rc_bdaddr "A4:6C:F1:08:96:B7";
         //client_addr.rc_bdaddr = (bdaddr_t){0xB7, 0x96, 0x08, 0xF1, 0x6C, 0xA4};
 
-        /* allocate socket */
+        //allocate RFCOMM socket
         server_sock = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
 
-        loc_addr.rc_family = AF_BLUETOOTH;		/* Addressing family, always AF_BLUETOOTH */
-        //bacpy(&loc_addr.rc_bdaddr, BDADDR_ANY);		/* Bluetooth address of local bluetooth adapter */
+        loc_addr.rc_family = AF_BLUETOOTH;		// Addressing family, always AF_BLUETOOTH
+        //bacpy(&loc_addr.rc_bdaddr, BDADDR_ANY);		// Bluetooth address of local bluetooth adapter
         loc_addr.rc_bdaddr = *BDADDR_ANY;
-        //loc_addr.rc_channel = RFCOMM_SERVER_PORT_NUM;	/* port number of local bluetooth adapter */
+        //loc_addr.rc_channel = RFCOMM_SERVER_PORT_NUM;	// port number of local bluetooth adapter
         loc_addr.rc_channel = (uint8_t) 1;
-
-    /*
-        rfcomm_bth_portnr++;
-        if (rfcomm_bth_portnr > 5) rfcomm_bth_portnr = 1;
-        qDebug() << "Rfcomm-Portnumber: " << rfcomm_bth_portnr << "\n";
-        loc_addr.rc_channel = rfcomm_bth_portnr;
     */
-        if(bind(server_sock, (struct sockaddr *)&loc_addr, sizeof(loc_addr)) < 0) //accept incoming connections and reserve OS resources
+
+        if(bind(server_sock, (struct sockaddr *)&loc_addr, sizeof(loc_addr)) < 0)
         {
             perror("failed to bind");
             //exit(1);
@@ -292,16 +330,18 @@ void BackendStuff::bt_server(void)
             bt_bound = true;
         }
 
-    while(true)
+    while(true) //ein Thread läuft normal nur einmal durch, darum die while-Schleife
     {
+
         /* put socket into listening mode */
-        listen(server_sock, 1);		/* backlog = 1, max length to which the queue pending connections for sockfd may grow */
+        //listen(server_sock, 1);		/* backlog = 1, max length to which the queue pending connections for sockfd may grow */
+        listen(server_sock,1);
 
         /* accept one connection */
         fcntl(server_sock, F_SETFL, O_NONBLOCK); //set socket listen and non-blocking
-        client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &opt);	/* return new socket for connection with a client */
+        client_sock = accept(server_sock, (struct sockaddr *)&rem_addr, &opt); // return new socket for connection with a client
 
-        ba2str( &client_addr.rc_bdaddr, buf );
+        ba2str( &rem_addr.l2_bdaddr, buf );
 
         btpoll.fd = server_sock;
         btpoll.events = POLLIN;		//tell me when ready to read
@@ -315,23 +355,25 @@ void BackendStuff::bt_server(void)
              int pollin_happened = btpoll.revents & POLLIN;
 
              if (pollin_happened) {
-                //printf("File descriptor %d is ready to read\n", btpoll.fd);
 
-                client_sock = accept(server_sock, (struct sockaddr *)&client_addr, &opt);	/* return new socket for connection with a client */
+                client_sock = accept(server_sock, (struct sockaddr *)&rem_addr, &opt);	/* return new socket for connection with a client */
 
-                ba2str( &client_addr.rc_bdaddr, buf );
+                ba2str( &rem_addr.l2_bdaddr, buf );
 
                 /* read data from the client */
-                memset(buf, 0, sizeof(buf));
+                memset(bt_buf, 0, sizeof(bt_buf));
                 //bytes_read = recv(client_sock, buf, sizeof(buf), 0);
 
-                //if( fopen("/tmp/msg_recvd.txt", "w") == NULL) printf("Error opening/creating audio sample file!\n");
-                //int openfd = open("/tmp/msg_recvd.txt", O_WRONLY);
                 if( fopen("/tmp/msg_recvd.wav", "w") == NULL) printf("Error opening/creating audio sample file!\n");
                 int openfd = open("/tmp/msg_recvd.wav", O_WRONLY);
                 if(openfd < 0) printf("Error opening audio sample file!\n");
 
-                //while(!(bytes_read = recv(client_sock, bt_buf, sizeof(bt_buf), 0)))
+                while(read(client_sock, bt_buf,sizeof(bt_buf)) > 0 )
+                    {
+                        write(openfd, bt_buf, sizeof(bt_buf));
+                    }
+
+                /*
                 while( (bytes_read = read(client_sock, bt_buf,sizeof(bt_buf))) > 0 )
                 {
                   //write(openfd, bt_buf, sizeof(bt_buf));
@@ -340,7 +382,7 @@ void BackendStuff::bt_server(void)
                 //bytes_read = recv(client_sock, bt_buf, sizeof(bt_buf), 0);
                 if( bytes_read == 0 ) {
                     puts("no bytes received\n");
-                }
+                } */
 
                 close(openfd);
 
@@ -352,42 +394,28 @@ void BackendStuff::bt_server(void)
                 else
                 {
                     while(fgetc(pFile) != EOF) ++n;
-
-                    /*
-                    if(feof(pFile))
-                    {
-                        printf("End of File reach, total bytenumber: %d\n", n);
-                    }
-                    else
-                    {
-                        puts("End of file not reached!\n");
-                    } */
                 }
 
                 fclose(pFile);
 
-                uint32_t equal_zero = 0;
-                char check_byte;
+                uint32_t unequal_zero = 0;
+                int check;
                 std::ifstream parsed("/tmp/msg_recvd.wav");
                 for(uint32_t i = 0; i<n; i++)
                 {
-                    check_byte = parsed.get();
-                    if(check_byte != NULL)
-                    {
-                        if(check_byte == 0) equal_zero++;
-                        //std::cout << "check_byte: " << check_byte << " in decimal " << std::dec << (uint32_t) check_byte << ...
-                    }
+                    check = (int) parsed.get(); //ASCII text if file contains only the decimal bytes 9–13, 32–126
+                    if((check >= 9 && check <= 13) || (check >= 32 && check <=126)) unequal_zero++;
                 }
 
-                if(equal_zero)
+                if(unequal_zero > 4000)
                 {
-                    qDebug() << "Received message is audio/binary!\n";
+                    //qDebug() << "Received message is audio/binary!\n";
                     // < mache roten Punkt auf voice-option >
                     bth_msg_recvd = true;
                 }
                 else
                 {
-                    qDebug() << "Received message is text!\n";
+                    //qDebug() << "Received message is text!\n";
                     // < mache roten punkt auf type-option >
                     bth_txtmsg_recvd = true;
 
@@ -400,6 +428,7 @@ void BackendStuff::bt_server(void)
                     }
                     file.close();
 
+                    printmsg.clear();   //String clearen bevor neuer Inhalt angehängt wird
                     for(uint32_t x=0; x < (uint32_t)temp_printmsg.length(); x++)
                     {
                         if(temp_printmsg[x] != 0x00) printmsg.append(temp_printmsg[x]);
@@ -497,10 +526,10 @@ void BackendStuff::capture_voice()
       snd_pcm_uframes_t frames;
       char *buffer;
 
-      rc = snd_pcm_open(&handle, "hw:1,0", SND_PCM_STREAM_CAPTURE, 0);
+      //rc = snd_pcm_open(&handle, "hw:1,0", SND_PCM_STREAM_CAPTURE, 0);
 
       //für CloudLab andere Headset-Schnittstelle
-      //rc = snd_pcm_open(&handle, "hw:2,0", SND_PCM_STREAM_CAPTURE, 0);
+      rc = snd_pcm_open(&handle, "hw:2,0", SND_PCM_STREAM_CAPTURE, 0);
 
       if (rc < 0) {
         fprintf(stderr,"unable to open pcm device: %s\n",snd_strerror(rc));
@@ -560,13 +589,22 @@ void BackendStuff::capture_voice()
 
         while (loops > 0  && voice_flag == false) {
           loops--;
-          rc = snd_pcm_readi(handle, buffer, frames);
+          rc = snd_pcm_readi(handle, buffer, frames);   //read interleaved frames from pcm
           if (rc == -EPIPE) {
             /* EPIPE means overrun */
             fprintf(stderr, "overrun occurred\n");
             snd_pcm_prepare(handle);
-          } else if (rc < 0) {
-            fprintf(stderr,"error from read: %s\n",snd_strerror(rc));
+          }
+          else if ( rc == -ESTRPIPE){
+              fprintf(stderr, "a suspend event occurred (stream is suspended and waiting for an application recovery)\n");
+          }
+          else if ( rc == -EBADFD){
+              fprintf(stderr, "PCM is not in the right state (SND_PCM_STATE_PREPARED or SND_PCM_STATE_RUNNING)\n");
+          }
+          else if (rc < 0) {
+            //fprintf(stderr,"error from read: %s\n",snd_strerror(rc));
+            //rc = snd_pcm_open(&handle, "hw:2,0", SND_PCM_STREAM_CAPTURE, 0);
+
           } else if (rc != (int)frames) {
             fprintf(stderr, "short read, read %d frames\n", rc);
           }
@@ -635,7 +673,7 @@ void BackendStuff::listen_msg()
         qDebug() << "Error opening/creating audio sample file!\n";
 
         //zum Testen:
-        bth_msg_recvd = false;
+        //bth_msg_recvd = false;
         //exit(1);
         return;
     }

@@ -71,6 +71,7 @@ class BackendStuff : public QObject //, public bluetooth_recv
     Q_PROPERTY(QString BluetoothClr READ BluetoothClr NOTIFY BluetoothClrChanged)
     Q_PROPERTY(bool Bth_msg_recv READ Bth_msg_recv NOTIFY Bth_msg_recvChanged)
     Q_PROPERTY(bool Bth_txtmsg_recv READ Bth_txtmsg_recv NOTIFY Bth_txtmsg_recvChanged)
+    Q_PROPERTY(bool Bth_txtmsg_clear READ Bth_txtmsg_clear)
 
 public:
     BackendStuff(QObject *parent = nullptr);
@@ -175,6 +176,10 @@ public:
         }
     }
 
+    bool Bth_txtmsg_clear() const{
+        return (false);
+    }
+
     bool Bth_msg_recv() const {
         if( bth_msg_recvd == true)
         {
@@ -236,7 +241,7 @@ public slots:
     void disconnectClicked();
     void closeConnection();
     void connect2host();
-    void bth_usage();   // former: bluetooth_test
+    void bth_send();   // former: bluetooth_test
     void bt_voice_send();
     void capture_voice();
     void listen_msg();
