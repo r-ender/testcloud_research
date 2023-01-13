@@ -368,6 +368,12 @@ void BackendStuff::bt_server(void)
                 int openfd = open("/tmp/msg_recvd.wav", O_WRONLY);
                 if(openfd < 0) printf("Error opening audio sample file!\n");
 
+                uint32_t bytes_read = 0;
+                //test
+                bytes_read = read(client_sock, bt_buf,sizeof(bt_buf));
+                qDebug() << "Bytes-read: " << bytes_read << "\n";
+                if(bytes_read > 0) write(openfd, bt_buf, sizeof(bt_buf));
+
                 while(read(client_sock, bt_buf,sizeof(bt_buf)) > 0 )
                     {
                         write(openfd, bt_buf, sizeof(bt_buf));
@@ -526,10 +532,10 @@ void BackendStuff::capture_voice()
       snd_pcm_uframes_t frames;
       char *buffer;
 
-      //rc = snd_pcm_open(&handle, "hw:1,0", SND_PCM_STREAM_CAPTURE, 0);
+      rc = snd_pcm_open(&handle, "hw:1,0", SND_PCM_STREAM_CAPTURE, 0);
 
       //für CloudLab andere Headset-Schnittstelle
-      rc = snd_pcm_open(&handle, "hw:2,0", SND_PCM_STREAM_CAPTURE, 0);
+      //rc = snd_pcm_open(&handle, "hw:2,0", SND_PCM_STREAM_CAPTURE, 0);
 
       if (rc < 0) {
         fprintf(stderr,"unable to open pcm device: %s\n",snd_strerror(rc));
