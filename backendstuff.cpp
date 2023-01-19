@@ -171,7 +171,6 @@ void BackendStuff::bth_send()
 
     // send  message
     if( status == 0 ) {
-        //status = bt_wrapper.bt_write(s, "hello!", 6);
         bt_wrapper.bt_write(s,&output[0],output.length()); //write-function requires void-pointer, hence the address of first element
     }
 
@@ -184,7 +183,6 @@ void BackendStuff::bth_send()
 
 void BackendStuff::bt_voice_send()
 {
-    //qDebug() << "Bluetooth voice send\n";
     QByteArray ba;
 
     if( fopen("/tmp/jabra_capture.wav", "r") == NULL)
@@ -201,8 +199,6 @@ void BackendStuff::bt_voice_send()
 
     std::string bthadr = btaddr.toStdString();
 
-    //std::cout << "User getter bluetooth addr: " << bthadr << std::endl;
-
     //status = bt_wrapper.bt_connect(s, (struct sockaddr *)&addr2, sizeof(addr2));	//connect to server
     status = bt_wrapper.bt_connect_l2cap(s,&bthadr);
 
@@ -211,7 +207,6 @@ void BackendStuff::bt_voice_send()
     {
         ba = f.readAll();
         //qDebug() << "read " << ba.size() << "bytes";
-        //qDebug() << "print ByteArray:\n" << ba << "\n";
         f.close();
     }
     else
@@ -220,22 +215,41 @@ void BackendStuff::bt_voice_send()
     }
 
     uint32_t original_balength=(uint32_t)ba.length();
-    const uint32_t mtu = 65534;
+    //const uint32_t mtu = 65535;
+    const uint32_t mtu = 65000;
 
+    //uint32_t prev_sent = 0;
     // send  message
     if( status == 0 ) {
+
+        /*
+        status = bt_wrapper.bt_write(s,ba, (uint32_t)ba.length());
+
+        if(status > 0 && (uint32_t) status < original_balength )
+        {
+            prev_sent = status;
+            uint32_t sendloops = (original_balength - prev_sent)/mtu;
+            for(uint8_t z=0; z < sendloops; z++)
+            {
+                //status = bt_wrapper.bt_write(s,ba.mid(z*mtu,mtu),mtu);
+                status = bt_wrapper.bt_write(s,ba.mid(prev_sent+z*mtu,mtu),mtu);
+                if(status < 0) perror("sending gone wrong!\n");
+            }
+
+        }
+        */
 
         uint32_t sendloops = original_balength/mtu;
 
         for(uint8_t z=0; z < sendloops; z++)
         {
-            //status = bt_wrapper.bt_write(s,&ba[z*mtu], mtu);
             status = bt_wrapper.bt_write(s,ba.mid(z*mtu,mtu),mtu);
             if(status < 0) perror("sending gone wrong!\n");
         }
         //status = bt_wrapper.bt_write(s, "hello!", 6);
         //bt_wrapper.bt_write(s,&output[0],output.length()); //write-function requires void-pointer, hence the address of first element
         //while ( (uint32_t) bt_wrapper.bt_write(s,ba,ba.length() != 0)
+
         /*
         uint32_t bytessent = 0;
         uint32_t total_bytessent = 0;
@@ -249,7 +263,7 @@ void BackendStuff::bt_voice_send()
             leftover_balength = original_balength - total_bytessent;
             qDebug() << total_bytessent << " Bytes have been transmitted and " << leftover_balength << " Bytes are left over\n";
         }while ((bytessent > 2) && leftover_balength > 0);
-    */
+        */
     }
 
 
@@ -264,18 +278,16 @@ void BackendStuff::bt_voice_send()
 
 void BackendStuff::bt_server(void)
 {
-        //qDebug() << "This is bt_server!\n";
-        //struct sockaddr_rc loc_addr;	/* local bluetooth adapter's info */
+        //struct sockaddr_rc loc_addr;	/* local bluetooth adapter's info for rfcomm */
         struct sockaddr_l2 loc_addr,rem_addr;  //local and remot structs bt-devices
         char buf[1024] = { 0 };
-        //char bt_buf[80] = {0};
-        char bt_buf[65534] = {0}; //max MTU for L2CAP Bluetooth
-
+        //char bt_buf[65534] = {0}; //max MTU for L2CAP Bluetooth
+        char bt_buf[65000] = {0};
         int server_sock, client_sock;
         socklen_t opt = sizeof(rem_addr);
 
-        uint16_t mtu = 65534;
-
+        //uint16_t mtu = 65534;
+        uint16_t mtu = 65000;
         // allocate socket
         server_sock = socket(AF_BLUETOOTH, SOCK_SEQPACKET, BTPROTO_L2CAP);
 
@@ -311,10 +323,6 @@ void BackendStuff::bt_server(void)
         //client_addr.rc_bdaddr = (sockaddr_rc).rc_bdaddr "A4:6C:F1:08:96:B7";
         //client_addr.rc_bdaddr = (bdaddr_t){0xB7, 0x96, 0x08, 0xF1, 0x6C, 0xA4};
 
-        //allocate RFCOMM socket
-        server_sock = socket(AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
-
-        loc_addr.rc_family = AF_BLUETOOTH;		// Addressing family, always AF_BLUETOOTH
         //bacpy(&loc_addr.rc_bdaddr, BDADDR_ANY);		// Bluetooth address of local bluetooth adapter
         loc_addr.rc_bdaddr = *BDADDR_ANY;
         //loc_addr.rc_channel = RFCOMM_SERVER_PORT_NUM;	// port number of local bluetooth adapter
@@ -334,8 +342,7 @@ void BackendStuff::bt_server(void)
     {
 
         /* put socket into listening mode */
-        //listen(server_sock, 1);		/* backlog = 1, max length to which the queue pending connections for sockfd may grow */
-        listen(server_sock,1);
+        listen(server_sock, 1);		/* backlog = 1, max length to which the queue pending connections for sockfd may grow */
 
         /* accept one connection */
         fcntl(server_sock, F_SETFL, O_NONBLOCK); //set socket listen and non-blocking
@@ -346,7 +353,6 @@ void BackendStuff::bt_server(void)
         btpoll.fd = server_sock;
         btpoll.events = POLLIN;		//tell me when ready to read
         int num_events = poll(&btpoll, 1, -1); // wait forever, what means block?!
-
 
         if (num_events == 0) {
             printf("Poll timed out!\n");
@@ -362,17 +368,10 @@ void BackendStuff::bt_server(void)
 
                 /* read data from the client */
                 memset(bt_buf, 0, sizeof(bt_buf));
-                //bytes_read = recv(client_sock, buf, sizeof(buf), 0);
 
                 if( fopen("/tmp/msg_recvd.wav", "w") == NULL) printf("Error opening/creating audio sample file!\n");
                 int openfd = open("/tmp/msg_recvd.wav", O_WRONLY);
                 if(openfd < 0) printf("Error opening audio sample file!\n");
-
-                uint32_t bytes_read = 0;
-                //test
-                bytes_read = read(client_sock, bt_buf,sizeof(bt_buf));
-                qDebug() << "Bytes-read: " << bytes_read << "\n";
-                if(bytes_read > 0) write(openfd, bt_buf, sizeof(bt_buf));
 
                 while(read(client_sock, bt_buf,sizeof(bt_buf)) > 0 )
                     {
@@ -522,7 +521,6 @@ void BackendStuff::listenStart()
 
 void BackendStuff::capture_voice()
 {
-      //qDebug() << "Aufruf von capture_voice()!\n";
       voice_flag = false;
       int rc, openfd, size, dir;
       long loops;
@@ -591,7 +589,9 @@ void BackendStuff::capture_voice()
 
         /* We want to loop for 5 seconds */
         snd_pcm_hw_params_get_period_time(params, &val, &dir);
-        loops = 5000000 / val; //5.000.000 / 44100 = ~120 loops
+        //loops = 5000000 / val; //5.000.000 / 44100 = ~120 loops
+        loops = 4000000 / val; //5.000.000 / 44100 = ~120 loops
+
 
         while (loops > 0  && voice_flag == false) {
           loops--;
@@ -608,7 +608,7 @@ void BackendStuff::capture_voice()
               fprintf(stderr, "PCM is not in the right state (SND_PCM_STATE_PREPARED or SND_PCM_STATE_RUNNING)\n");
           }
           else if (rc < 0) {
-            //fprintf(stderr,"error from read: %s\n",snd_strerror(rc));
+            fprintf(stderr,"error from read: %s\n",snd_strerror(rc));
             //rc = snd_pcm_open(&handle, "hw:2,0", SND_PCM_STREAM_CAPTURE, 0);
 
           } else if (rc != (int)frames) {
@@ -623,27 +623,11 @@ void BackendStuff::capture_voice()
         snd_pcm_drain(handle);
         snd_pcm_close(handle);
         free(buffer);
-        //qDebug() << "Ende von capture_voice()!\n";
         close(openfd);
-
 }
-
-/*
-void BackendStuff::print_msg()
-{
-    QFile file("/tmp/msg_recvd.wav");
-    if(file.open(QIODevice::ReadOnly)) {
-         QTextStream in(&file);
-         while(!in.atEnd())
-             print_msg_recv = in.readAll();
-    }
-    file.close();
-}
-*/
 
 void BackendStuff::listen_msg()
 {
-    //qDebug() << "Aufruf von listen_msg()!\n";
     long loops;
     int rc, openfd, size, dir;
     snd_pcm_t *handle;
@@ -651,13 +635,6 @@ void BackendStuff::listen_msg()
     unsigned int val;
     snd_pcm_uframes_t frames;
     char *buffer;
-
-    //QFile file("/tmp/jabra_capture.wav");
-    //QString hinput = input.toString();
-    //hinput.toLatin1().toHex();
-
-    //if( fopen("/tmp/msg_recvd.txt", "w") == NULL) printf("Error opening/creating audio sample file!\n");
-    //int openfd = open("/tmp/msg_recvd.txt", O_WRONLY);
 
     QFile file("/tmp/msg_recvd.wav");
     QString content;
@@ -668,22 +645,12 @@ void BackendStuff::listen_msg()
     }
     file.close();
 
-    //bool ok;
-    //QString hexString = "0x03";
-    //qDebug() << "BINARY 1: " << QString::number(hexString.toLongLong(&ok, 16),2);
-    //qDebug() << "BINARY 2: " << QString("%1").arg(content.toULongLong(&ok, 16), 5, 2, QChar('0'));
-
-    //read in file-descriptor of audiofile
-    //if( fopen("/tmp/jabra_capture.wav", "r") == NULL) {
     if( fopen("/tmp/msg_recvd.wav", "r") == NULL) {
         qDebug() << "Error opening/creating audio sample file!\n";
-
-        //zum Testen:
-        //bth_msg_recvd = false;
         //exit(1);
         return;
     }
-    //openfd = open("/tmp/jabra_capture.wav", O_RDONLY);
+
     openfd = open("/tmp/msg_recvd.wav", O_RDONLY);
     if(openfd < 0) printf("Error opening audio sample file!\n");
 
@@ -739,13 +706,12 @@ void BackendStuff::listen_msg()
     /* We want to loop for 5 seconds */
     snd_pcm_hw_params_get_period_time(params, &val, &dir);
     /* 5 seconds in microseconds divided by period time */
-    loops = 5000000 / val;
+    loops = 4000000 / val;
 
     while (loops > 0) {
       loops--;
-      //rc = read(0, buffer, size);	//hier fd=0 ändern um Fie direkt im Programm zu lesen anstatt per terminal einzulesen, fd=0 bedeutet "read from keyboard"
-      //qDebug() << "listen-buffer: " << buffer << "\n";
-      rc = read(openfd, buffer, size);
+
+      rc = read(openfd, buffer, size);      //falls openfd=0 --> read from keyboard/micophone
       if (rc == 0) {
         fprintf(stderr, "end of file on input\n");
         break;
@@ -770,7 +736,6 @@ void BackendStuff::listen_msg()
     close(openfd);
 
     bth_msg_recvd = false;
-    //qDebug() << "Ende von listen_msg()!\n";
 }
 
 void BackendStuff::disconnectClicked()
@@ -789,7 +754,6 @@ void BackendStuff::connect2host()
 
 void BackendStuff::connectionTimeout()
 {
-    //qDebug() << tcpSocket->state();
     if(tcpSocket->state() == QAbstractSocket::ConnectingState)
     {
         tcpSocket->abort();

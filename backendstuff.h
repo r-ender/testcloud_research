@@ -177,6 +177,7 @@ public:
     }
 
     bool Bth_txtmsg_clear() const{
+        bth_txtmsg_recvd = false;
         return (false);
     }
 

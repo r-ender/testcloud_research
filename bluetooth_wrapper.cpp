@@ -116,7 +116,8 @@ int Bluetooth_Wrapper::bt_connect_l2cap(int &fd, std::string *bt_addr)
 
     str2ba(btaddr, &addr.l2_bdaddr);
 
-    const uint32_t mtu = 65534;
+    //const uint32_t mtu = 65535;
+    const uint32_t mtu = 65000;
 
     //erhöhen der MTU
     struct l2cap_options{
@@ -129,7 +130,6 @@ int Bluetooth_Wrapper::bt_connect_l2cap(int &fd, std::string *bt_addr)
 
     socklen_t optlen = sizeof(opts);
     int err;
-    //int optlen = sizeof(opts), err;
 
     opts.omtu = opts.imtu = mtu;
     opts.flush_to = 65535;
