@@ -4761,8 +4761,438 @@ but:
 file einlesen nicht so leicht, da binary-file und somit benötige ich extra Befehle.
 
 wenn ich apt-get install ausführe folgender Fehler:
-dpkg: error processing package python3 (--configure):
- package is in a very bad inconsistent state; you should
- reinstall it before attempting configuration
+dpkg: error processing package python3 (--configure): --> nach apt-get reinstall python3  klappt das wieder
+
+neuer Fehler: qt.qpa.plugin: Could not load the Qt platform plugin "wayland-egl" in "" even though it was found.
+ein bisschen hilft:	export QT_QPA_PLATFORM=wayland
+
+neu:
+Failed to create wl_display (No such file or directory)
+On Wayland, Failed to create display (No such file or directory) means that a Wayland client couldn't connect to the compositor/display server.
+
+f ./myapp -platform wayland shows the app, then you have a compositor running. If you can't get it to work with qtcreator, it might be that it's running with the wrong options or perhaps XDG_RUNTIME_DIR is set to something else than on the device? If you do ls $XDG_RUNTIME_DIR you should be able to see the socket, wayland-0, for the compositor.
+
+bei mir erscheint nicht wayland-0
+(bei gast-pc erscheint das unter /run/user/120/wayland-0 )
+
+der PFad von DG_RUNTIME_DIR ist auf cloudPC run/user/1000/
+wenn ich manuell wayland-0 erstelle mit "touch run/user/1000/wayland-0" kommt neue Fehlermeldung:		Failed to create wl_display (Connection refused)
+https://wiki.archlinux.org/title/Running_GUI_applications_as_root#Wayland
+
+einlesen waylandzu wayland:
+The Wayland server shall be able on the default wayland-0 socket. Clients
+may connect to this socket and use the standard Wayland protocol with no
+additional requirements.
+----> wayland-server selbst starten ?!
+
+< 18. Support for standardised Wayland extensions
+1. wl_output and xdg_output_v1 shall be present to describe
+display devices
+2. xdg_wm_base shall be present for window management; clients
+should not use the deprecated ivi-application interface
+3. wl_subcompositor shall be present to support combination of
+multiple surfaces into a single presentable entity
+4. zxdg_importer_v1 , zxdg_exporter_v1 ,
+agl_foreign_subcompositor_v1 , shall be present to support
+combination of multiple surfaces from different client processes
+5. wl_shm shall be supported for software-rendered clients, with at
+least WL_SHM_FORMAT_XRGB8888 and WL_SHM_FORMAT_ARGB8888
+6. zwp_linux_dmabuf_v1 should be present to support zero-copy
+presentation of hardware-generated content from clients
+(media/GPU)
+7. wp_presentation shall be present to support presentation timing
+feedback to clients 
+
+Support for EGL / OpenGL ES clients using standard Wayland EGL
+platform
+1. Clients using libwayland-egl and EGL_KHR_platform_wayland
+shall be able to display content.
+
+Wayland is a display server protocol.>
+
+There's no such thing as "start Wayland", as there's no such program as "Wayland". Wayland is a protocol, and there are multiple Wayland-compatible compositors out there, Plasma's KWin being one of them.
+
+On "Wayland, Failed to created display" means that a Wayland client couldn't connect to the compositor(=display server).
+So you should verify that your compositor is running. Which one are you using? The environment variable, XDG_RUNTIME_DIR also needs to be set both when the compositor is started and when your client is started.
+Note that if you are running a Qt-based compositor, then the compositor should probably still be run with the eglfs backend
+
+( sudo apt install qtwayland5,
+
+
+next:   Fehler ganz am Ende: aborted core dump. Evtl nochmal cross-kompilieren evtl läuft es dann denoch ?!
+
+für debuggen:  export QT_DEBUG_PLUGINS=1
+cloud@Cloud-Lab:~/agl/bluetooth_selfattempt/bt_tutorial$ ./merged_QML_input_test -platform wayland-egl
+
+( bluetooth Fehler:
+Listening on bluetooth/[00:00:00:00:00:00]:9
+SDP session setup failed, disabling bluetooth
+net_init() failed
+---> "sudo service bluetooth stop"   And restart it "sudo bluetoothd --compat &"  
+and/or:	For me the hciconfig was down, so i started it as:  hciconfig hci0 up
+zum Prüfen:	sudo systemctl status bluetooth
+
+
+app läuft wenn ich folgendes eingebe:
+cloud@Cloud-Lab:~/Downloads$ sudo modprobe uvesafb 
+cloud@Cloud-Lab:~/agl/bluetooth_selfattempt/bt_tutorial$ ./merged_QML_input_test 
+
+Folgende Fehler erscheinen:
+QQmlApplicationEngine failed to load component
+qrc:/startingpage.qml:1 module "QtQuick" is not installed
+qrc:/startingpage.qml:2 module "QtQuick.Controls" is not installed
+qrc:/startingpage.qml:1 module "QtQuick" is not installed
+qrc:/startingpage.qml:2 module "QtQuick.Controls" is not installed
+
+---> sudo apt -y install qml-module-qtquick-controls  oder sudo apt install qml-module-qtquick-controls2
+-> jetzt läuft die App :-) 
+
+PS: "Could not convert argument 0 at"
+	 "onClicked@qrc:/HexKeyboard.qml:139"
+"Passing incompatible arguments to C++ functions from JavaScript is dangerous and deprecated."		dieser Fehler erscheint nicht auf gast-PC, nur hier.
+
+
+App crasht bei Aufnahme von Voice, evtl wegen thread ?! --> Debuggen
+
+Bluetooth-Probleme gelöst mit:
+sudo service bluetooth stop
+sudo bluetoothd --compat &
+sudo hciconfig hci0 up
+sudo obexpushd -B bluetooth0 -d &
+
+Beim Senden von cloudlab an gast-PC kommt folgender fehler in btmon:
+ data element size too short
+        36 03 e9                                         6..             
+
+cloud@Cloud-Lab:~/agl/bluetooth_selfattempt/bt_tutorial$ sudo hcitool cc A8:6D:AA:B0:2D:49; sudo hcitool lq A8:6D:AA:B0:2D:49
+
+cloud@Cloud-Lab:~/agl$ sudo btmgmt conn-info A8:6D:AA:B0:2D:49
+[sudo] password for cloud: 
+Connection Information for A8:6D:AA:B0:2D:49 (BR/EDR)
+	RSSI 0	TX power 0	maximum TX power 10
+
+
+Frage: in AGL (QEMU) bluetooth möglich? wie testen?
+--> debug-Hilfen:
+
+hciconfig -a
+sudo hcitool dev
+sudo hcitool scan
+
+für qemu einfügen bei Start: ‘-bt hci,host[:id]’
+		zum Beispiel: user~: /opt/qemu/bin/qemu-system-i386 -enable-kvm -hda disk.vmdk -m 512 -usb -bt hci,host:hci0 -cdrom /dev/sr0 -boot d
+
+bluetooth-lib in qemu einfügen:	user@host:~$ ldd /opt/qemu/bin/qemu-system-i386 | grep blu
+							libbluetooth.so.3 => /usr/lib/libbluetooth.so.3 (0xf6c16000)
+	
+---> folgender Befehl anscheinend ohne environment sourcen:						
+							
+(sleep 5 && vinagre --vnc-scale localhost ) > /tmp/vinagre.log 2>&1 & qemu-system-x86_64 -device virtio-net-pci,netdev=net0,mac=52:54:00:12:35:02 -netdev user,id=net0,hostfwd=tcp::2222-:22 -drive file=agl-demo-platform-crosssdk-qemux86-64.ext4,if=virtio,format=raw -show-cursor -usb -device usb-tablet -device virtio-rng-pci -snapshot -vga virtio -vnc :0 -soundhw hda -machine q35 -cpu kvm64 -cpu qemu64,+ssse3,+sse4.1,+sse4.2,+popcnt -enable-kvm -m 2048 -cpu host -serial mon:vc -serial mon:stdio -serial null -usb -device usb-host,hostbus=3,hostaddr=5 -kernel bzImage -append 'root=/dev/vda rw console=tty0 mem=2048M ip=dhcp oprofile.timer=1 console=ttyS0,115200n8 verbose fstab=no'
+
+fehler BLuetooth wurde aus qemu entfernt: Bluetooth was deprecated in 2018 for QEMU v3.1 (hence that warning message), and was subsequently removed entirely for QEMU v5.0, released in 2020!
+meine qemu-Version:
+cloud@Cloud-Lab:~/agl/build/new_img$ /usr/bin/qemu-system-x86_64 --version
+QEMU emulator version 4.2.1 (Debian 1:4.2-3ubuntu6.24)
+Copyright (c) 2003-2019 Fabrice Bellard and the QEMU Project developers
+
+		
+cloudlab lsusb:
+Bus 003 Device 005: ID 8087:07dc Intel Corp. 
+Bus 001 Device 002: ID 8087:8008 Intel Corp. 
+Bus 002 Device 002: ID 8087:8000 Intel Corp. 	
+
+cloud@Cloud-Lab:~/agl/build/new_img$ hciconfig -a
+hci0:	Type: Primary  Bus: USB
+	BD Address: CC:3D:82:39:9B:61  ACL MTU: 1021:5  SCO MTU: 96:6
+	UP RUNNING 
+	RX bytes:1991 acl:0 sco:0 events:197 errors:0
+	TX bytes:26675 acl:0 sco:0 commands:195 errors:0
+	Features: 0xff 0xfe 0x0f 0xfe 0xdb 0xff 0x7b 0x87
+	Packet type: DM1 DM3 DM5 DH1 DH3 DH5 HV1 HV2 HV3 
+	Link policy: RSWITCH HOLD SNIFF 
+	Link mode: SLAVE ACCEPT 
+	Name: 'Cloud-Lab'
+	Class: 0x0c010c
+	Service Classes: Rendering, Capturing
+	Device Class: Computer, Laptop
+	HCI Version: 4.0 (0x6)  Revision: 0xe00
+	LMP Version: 4.0 (0x6)  Subversion: 0xe00
+	Manufacturer: Intel Corp. (2)
+
+
+lsusb -t --->     |__ Port 11: Dev 5, If 0, Class=Wireless, Driver=btusb, 12M
+    		   |__ Port 11: Dev 5, If 1, Class=Wireless, Driver=btusb, 12M
+
+Bus 003 Device 005: ID 8087:07dc Intel Corp. 		(auch zu finden unter /dev/bus/usb/003/005)
+
+vorlage: -usb -usbdevice host:zzzz:zzzz -bt hci,host ---> -usb -usbdevice host:8087:07dc -bt hci,host  ( = veraltet)
+	< -device usb-host,hostbus=2,hostaddr=3 to add the host's USB device at Bus 2, Device 3.>  --> 	-device usb-host,hostbus=3,hostaddr=5
+	
+libusb: error [_get_usbfs_fd] libusb couldn't open USB device /dev/bus/usb/003/005: Permission denied
+---> lösung: sudo chown cloud /dev/bus/usb/003/005 ?
+
+hat geKlappt!
+qemux86-64:~# bluetoothctl show
+Controller CC:3D:82:39:9B:61 (public)
+	Name: qemux86-64
+	Alias: qemux86-64
+	Class: 0x00240000
+	Powered: yes
+	Discoverable: no
+	DiscoverableTimeout: 0x000000b4
+	Pairable: yes
+	UUID: A/V Remote Control        (0000110e-0000-1000-8000-00805f9b34fb)
+	UUID: PnP Information           (00001200-0000-1000-8000-00805f9b34fb)
+	UUID: Audio Sink                (0000110b-0000-1000-8000-00805f9b34fb)
+	UUID: A/V Remote Control Target (0000110c-0000-1000-8000-00805f9b34fb)
+	UUID: Generic Access Profile    (00001800-0000-1000-8000-00805f9b34fb)
+	UUID: Generic Attribute Profile (00001801-0000-1000-8000-00805f9b34fb)
+	UUID: Device Information        (0000180a-0000-1000-8000-00805f9b34fb)
+	UUID: Handsfree                 (0000111e-0000-1000-8000-00805f9b34fb)
+	Modalias: usb:v1D6Bp0246d0537
+	Discovering: no
+	Roles: central
+	Roles: peripheral
+Advertising Features:
+	ActiveInstances: 0x00 (0)
+	SupportedInstances: 0x05 (5)
+	SupportedIncludes: tx-power
+	SupportedIncludes: appearance
+	SupportedIncludes: local-name
+qemux86-64:~# 
+
+beim Ausführen von Binär-Dateien ist Fehler aufgetreten: qemux86-64:/home# sudo sh l2cap_server 
+l2cap_server: l2cap_server: cannot execute binary file
+
+Idee das Makefile anpassen für Architektur auf QEMU! --> anscheinend hat qemu gleihce architektur wie laptop
+qemux86-64:/home# uname -a
+Linux qemux86-64 5.4.69-yocto-standard #1 SMP PREEMPT Mon Jun 29 03:06:40 UTC 2020 x86_64 x86_64 x86_64 GNU/Linux
+
+---> vermutlich erst in sdk-Ordner wechseln, dann source .... und dann klappt buiden evtl?
+zum kompilieren:
+source agl/sdk/env..
+export LIBRARAY_PATH=/home/gast/local/lib/pkg_config:/home/gast/local/lib:$LIBRARY_PATH
+ldconfig
+gcc -Wall -g3 source.c -o source $(pkg-config --cflags --libs afb-daemon libafbwsc) -I/home/gast/....../corei7-64-agl-linux/usr/include
+
+Ausführen:
+export LD_LIBRARY_PATH=/home/gast/local/lib:$LD_LIBRARY_PATH
+
+
+qemux86-64:/home# lscpu
+Architecture:                    x86_64
+CPU op-mode(s):                  32-bit, 64-bit
+Byte Order:                      Little Endian
+Address sizes:                   40 bits physical, 48 bits virtual
+CPU(s):                          1
+On-line CPU(s) list:             0
+Thread(s) per core:              1
+Core(s) per socket:              1
+Socket(s):                       1
+Vendor ID:                       GenuineIntel
+CPU family:                      6
+Model:                           60
+Model name:                      Intel(R) Core(TM) i7-4600M CPU @ 2.90GHz
+Stepping:                        3
+CPU MHz:                         2893.300
+BogoMIPS:                        5786.60
+Virtualization:                  VT-x
+Hypervisor vendor:               KVM
+Virtualization type:             full
+
+
+binary läuft wohl, ich muss es nur in ein wgt-App verpacken?!
+qemux86-64:/var/local/lib/afm/applications/hvac/bin# ls -ll /usr/sbin/qemu_helloworld 
+-rwxr-xr-x. 1 root root 41744 Jan 20 13:42 /usr/sbin/qemu_helloworld
+qemux86-64:/var/local/lib/afm/applications/hvac/bin# ls -ll
+total 116
+-rwxr-xr-x. 1 root root 116936 Jan 20 11:48 hvac
+
+dann: afm-util start motalk
+
+---> next: l2cap_server in ein widget verpacken und testen!  (anshceinend liegt es nicht am build selbst) 
+
+widget installieren:  afm-util install /tmp/agl-service-helloworld.wgt
+
+zum App-Build folgende Ordner-Struktur beachten:
+loud@Cloud-Lab:~/agl/agl-srv-helwor/selftest_app$ ls package
+config.xml  htdocs  lib
+cloud@Cloud-Lab:~/agl/agl-srv-helwor/selftest_app$ ls package/htdocs/
+AFB-websock.js  assets  CMakeLists.txt  index.html  iotbzh-Binding.css  iotbzh-Binding.js
+cloud@Cloud-Lab:~/agl/agl-srv-helwor/selftest_app$ ls package/lib/
+helloworld_service.so
+cloud@Cloud-Lab:~/agl/agl-srv-helwor/selftest_app$ 
+
+dann ausführen: cloud@Cloud-Lab:~/agl/agl-srv-helwor/selftest_app$ wgtpkg-pack -f -o self_hellow.wgt package
+
+verpacken mit:
+source sdk/environment...
+wgtpkg-pack -f -o l2cap_server.wgt(=Ziel) package(=beinhaltender Ordner)
+
+kopieren mit "scp -P 2222 l2cap_server.wgt  root@localhost:/home"
+qemux86-64:~# afm-util install motalk_v2.wgt 
+afm-util start motalk
+
+debuggen:
+journalctl -xu  afm-appli-dashboard--0.1--main@.service
+qemux86-64:/var/local/lib/afm/applications/l2cap_server/bin# systemctl status afm-appli-l2cap_server--0.1--main@0.service
+
+systemctl start afm-appli-l2cap_server--0.1--main@0.service ?
+
+unter ls -ll /usr/local/lib/systemd/system/  Auflistung aller services/bindings. Für l2cap_server fehlt zB afm-api-HVAC@.service, afm-api-HVAC@.socket und afm-service-agl-service-hvac--1.0--main@.service
+
+qemux86-64:/var/local/lib/afm/applications/l2cap_server/bin# ./l2cap_server 
+-sh: ./l2cap_server: No such file or directory
+
+qemux86-64:/var/local/lib/afm/applications/l2cap_server/bin# file l2cap_server 
+l2cap_server: ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamically linked, interpreter /lib64/ld-linux-x86-64.so.2, BuildID[sha1]=5ad99508f6180175e80098a1c4385fb849d6c9e5, for GNU/Linux 3.2.0, with debug_info, not stripped
+
+--------> /lib64/ld-linux-x86-64.so.2  war nicht vorhanden, bloß /lib/ld-linux-x86-64.so.2, also selbst Ordner lib64 erstellt und File kopiert, jetzt klappt es. 
  
- evtl mit sudo dpkg -i xxxx.deb install ?
+--> Unterschied besteht im INterpreter/linker und stripped - not stripped ?!.
+Ein Interpreter verarbeitet den Quellcode eines Projekts zur Laufzeit. Dazu geht der Interpreter Zeile für Zeile vor: Eine Anweisung wird eingelesen, analysiert und sofort ausgeführt. Dann geht es mit der nächsten Anweisung weiter, bis schließlich das Ende des Programms erreicht ist; oder bis ein Fehler auftritt. Ein Interpreter erzeugt keine Datei, die man mehrmals ausführen könnte. Er fertigt auch keine Übersetzung des Quellcodes in Maschinensprache um, sondern fungiert als eine Zwischenschicht zwischen Programmiersprache und Maschine.
+
+qemux86-64:/var/local/lib/afm/applications/l2cap_server/bin# readelf --symbols l2cap_server 
+
+Symbol table '.dynsym' contains 26 entries:
+   Num:    Value          Size Type    Bind   Vis      Ndx Name
+     0: 0000000000000000     0 NOTYPE  LOCAL  DEFAULT  UND 
+     1: 0000000000000000     0 FUNC    GLOBAL DEFAULT  UND __errno_location@GLIBC_2.2.5 (2)
+     2: 0000000000000000     0 NOTYPE  WEAK   DEFAULT  UND _ITM_deregisterTMCloneTab
+
+---> alle Values = 0x000000000000 
+
+when "file doesn't exist" is written on terminal, just means a key component of the runtime environment necessary to run the program is missing. the output is a bit confusing.
+Notice interpreter /lib64/ld-lsb-x86-64.so.3; if this file does not exist, you need to install it. 
+
+
+l2cap_client connecten mit gast-pc aus qemu heraus klappt bereits, beim zweiten Mal auch mit Übetragen der daten.
+Aber l2cap_server klappt nicht, da sprint auch btmon gar nicht an, zeichnet keinerlei Sachen auf( das tut es aber bei gast-pc auch nicht)
+
+(ich kann bluetooth-controller entwedder in cloudlab oder qemu an haben, beides gleichzeitig geht nciht.)
+
+wenn ich l2cap_client ausführe in qemu:
+qemu-system-x86_64: libusb_release_interface: -4 [NO_DEVICE]
+libusb: error [_open_sysfs_attr] open /sys/bus/usb/devices/3-11/bConfigurationValue failed ret=-1 errno=2
+libusb: error [udev_hotplug_event] ignoring udev action change
+libusb: error [udev_hotplug_event] ignoring udev action bind
+
+
+Jan 23 17:23:20 qemux86-64 kernel: usb 2-2: USB disconnect, device number 2
+Jan 23 17:23:20 qemux86-64 afbd-agl-service-bluetooth-pbap[863]:  NOTICE: [API bluetooth-pbap] PBAP device disconnected: dev_A8_6D_AA_B0_2D_49 [/usr/src/debug/agl-ser>
+Jan 23 17:23:20 qemux86-64 bluetoothd[311]: Endpoint unregistered: sender=:1.6 path=/org/bluez/hci0/A2DP/SBC/Sink/1
+Jan 23 17:23:20 qemux86-64 bluetoothd[311]: Endpoint unregistered: sender=:1.6 path=/org/bluez/hci0/A2DP/SBC/Sink/2
+Jan 23 17:23:20 qemux86-64 systemd[1]: Starting Load/Save RF Kill Switch Status...
+Jan 23 17:23:20 qemux86-64 systemd[1024]: Stopped target Bluetooth.
+Jan 23 17:23:20 qemux86-64 systemd[782]: Stopped target Bluetooth.
+Jan 23 17:23:20 qemux86-64 systemd[1]: Started Load/Save RF Kill Switch Status.
+Jan 23 17:23:25 qemux86-64 systemd[1]: systemd-rfkill.service: Succeeded.
+
+
+Aber wenn ich l2cap_server ausführe: ---> keinerlei Output in journalctl. Der Output geht nichtmal bis "accepted connection from..."
+
+( bluetooth port ändert sich bei start von agl:  sudo chown cloud:cloud /dev/bus/usb/003/007 )
+
+--> l2cap_server bleibt bei folgendem Befehl hängen:   client = accept(s, (struct sockaddr *)&rem_addr, &opt);
+
+das passiert bei l2cap_client nicht, weil diese Programm kein accept hat!
+
+evtl aus stackoverflow:
+The problem was that I was trying to connect to the socket from server part by using host address and port, but to access the Qemu data I had to connect to the socket using file descriptor /dev/vport3p1.
+
+#define DEV_PATH "/dev/vport3p1"
+dev_fd = open(DEV_PATH, O_RDWR)
+
+---> https://developer.nordicsemi.com/nRF_Connect_SDK/doc/1.9.99-dev1/zephyr/guides/bluetooth/bluetooth-dev.html
+
+herausfinden ob linux-systeme offene sockets zeigen und vergleichen mit cloudlab-pc. Nicht allzulange aufhalten, falls es nciht klappt, sondern allgemein app mal testen.
+
+list open file descriptors:
+ls -l /proc/$$/fd
+lsof -a -p $$     ---> beides hilft mir nicht weiter, zeigt keine offenen sockets bei accept an.
+
+ps -aux | grep l2cap   --> zegit immerhin laufendes binary und PID an.
+----> Lösung unter cat /proc/net/l2cap   (einmal mit open l2cap_server und einmal ohne gibt es unterschiedlichen Output)
+	wenn l2cap_server als normaler user läuft (bei root User=0): cloud@Cloud-Lab:~/agl$ cat /proc/net/l2cap 
+								sk               RefCnt Rmem   Wmem   User   Inode  Parent
+								0000000000000000 2      0      0      1000   150223 0     
+								
+			
+'usb-host' is not a valid device model name ? --> terminal nicht sourcen bevor qemu gestartet wird.
+
+gdb in qemu:
+Breakpoint 2, main (argc=1, argv=0x7fffffffec28) at l2cap_server.c:82
+82	    client = accept(s, (struct sockaddr *)&rem_addr, &opt);
+(gdb) p s
+$1 = 3
+(gdb) p rem_addr
+$2 = {l2_family = 0, l2_psm = 0, l2_bdaddr = {b = "\000\000\000\000\000"}, l2_cid = 0, l2_bdaddr_type = 0 '\000'}
+(gdb) p loc_addr
+$3 = {l2_family = 31, l2_psm = 4097, l2_bdaddr = {b = "\000\000\000\000\000"}, l2_cid = 0, l2_bdaddr_type = 0 '\000'}
+(gdb) p opt
+$4 = 14
+(gdb) p opts
+$5 = {omtu = 65000, imtu = 65000, flush_to = 65535, mode = 0 '\000'}
+(gdb) p optlen
+$6 = 8
+
+
+l2cap_server in cloudlab:
+Breakpoint 3, main (argc=1, argv=0x7fffffffde38) at l2cap_server.c:86
+(gdb) p s
+$1 = 3
+(gdb) p rem_addr
+$2 = {l2_family = 0, l2_psm = 0, l2_bdaddr = {b = "\000\000\000\000\000"}, l2_cid = 0, l2_bdaddr_type = 0 '\000'}
+(gdb) p loc_addr
+$3 = {l2_family = 31, l2_psm = 4097, l2_bdaddr = {b = "\000\000\000\000\000"}, l2_cid = 0, l2_bdaddr_type = 0 '\000'}
+(gdb) p opt
+$4 = 14
+(gdb) p opts
+$5 = {omtu = 65000, imtu = 65000, flush_to = 65535, mode = 0 '\000'}
+(gdb) p optlen
+$6 = 8
+					
+---> beide völig gleich. next debuggen mit accept.c   ---> /sysdeps/unix/sysv/linux/accept.c
+-------------------------------------------------------------------------------------------
+Sourcecode:
+/* Copyright (C) 1991, 1995, 1996, 1997, 2002 Free Software Foundation, Inc.
+   This file is part of the GNU C Library.
+
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2.1 of the License, or (at your option) any later version.
+
+   The GNU C Library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  */
+
+#include <errno.h>
+#include <sys/socket.h>
+
+/* Await a connection on socket FD.
+   When a connection arrives, open a new socket to communicate with it,
+   set *ADDR (which is *ADDR_LEN bytes long) to the address of the connecting
+   peer and *ADDR_LEN to the address's actual length, and return the
+   new socket's descriptor, or -1 for errors.  */
+int
+accept (fd, addr, addr_len)
+     int fd;
+     __SOCKADDR_ARG addr;
+     socklen_t *addr_len;
+{
+  __set_errno (ENOSYS);
+  return -1;
+}
+libc_hidden_def (accept)
+
+
+stub_warning (accept)
+#include <stub-tag.h>
+--------------------------------------------------------------------------
