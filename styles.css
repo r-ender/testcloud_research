@@ -1,0 +1,154 @@
+/*
+	styles.css
+*/
+
+body {
+	font-family: Arial, Helvetica, sans-serif ;
+
+	margin: 8px;
+  	/* background-color: #88a6ab; */
+	background-color: #ffff66;
+}
+img {
+	max-width: 100% ;
+	width: auto ;
+	height: auto ;
+}
+input, select, button, textarea {
+	max-width: 100% ;
+}
+meter, progress, output {
+	max-width: 100% ;
+}
+div#tswsidecol {
+	float: right ;
+	width: 20% ;
+	color: #000 ;
+	background-color: #fff ;
+}
+div#tswcontent {
+	float: right ;
+	width: 80% ;
+	height: 100%;
+	color: #000 ;
+	background-color: #fff ;
+	transform: translate(-1%, 00%);
+}
+@media only screen and (max-width: 629px) {
+	div#tswsidecol {
+		float: none ;
+		width: 100% ;
+	}
+	div#tswcontent {
+		float: none ;
+		width: 100% ;
+	}
+}
+div#tswcontproper {
+	padding-left: 15px ;
+	padding-right: 15px ;
+	/* height: 440px; */
+	height: 80vh;
+}
+div#tswcontainer {
+	color: inherit ;
+	background-color: #fff ;
+}
+div#tswsideproper, div#tswothersideproper {
+	padding-left: 5px ;
+	padding-right: 5px ;
+}
+div#tswheader {
+	/*
+	color: #88a6ab ;
+	background-color: #88a6ab ;
+	*/
+	color: #ffff66;
+	background-color: #ffff66;
+	height: 15vh;
+	width: 100vw;
+}
+div#tswfooter {
+	color: #000 ;	/* color bedeutet Schriftfarbe */
+	background-color: #88a6ab ;
+	height: 5vh;
+	width: 99%;
+	margin-top: 35px;
+	font-family: Arial, Helvetica, sans-serif ;
+	text-align: center ;
+	font-size: 25px;
+}
+
+
+.bridge_img_container {
+	position: relative;
+	text-align: center;
+	width: 98%;
+	
+	transform: translate(00%, 00%);	/* translate (x,y) = Nullpunkt(x,y) */
+	display: inline-block; 
+	overflow: hidden; /* das verhindert das Überlappen von anderen Elementen */
+}
+
+.bridge_img_centeredtext{
+	position: absolute;
+	font-size: 80px;
+	color: #00ffbe;
+	top: 10px; height: 10px; left: 380px; width: 1289px;
+	text-shadow: 0 0 10px black;
+}
+
+.logo_img_container{
+	position: absolute;
+	height: 250px;
+	width: 250px;
+	transform: translate(20%,20%);
+
+}
+
+/* Timeline Container */
+.timeline {
+  background: var(--primary-color);
+  margin: 20px auto;
+  padding: 20px;
+}
+
+/* Outer Layer with the timeline border */
+.outer {
+  border-left: 5px solid #333;
+}
+
+/* Card container */
+.card {
+  position: relative;
+  margin: 0 0 20px 20px;
+  padding: 10px;
+  background: #333;
+  color: gray;
+  border-radius: 8px;
+  max-width: 600px;
+}
+
+/* Information about the timeline */
+.info {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Title of the card */
+.title {
+  color: orangered;
+  position: relative;
+}
+
+/* Timeline dot  */
+.title::before {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: white;
+  border-radius: 999px;
+  left: -39px;
+  border: 3px solid orangered;
+}
