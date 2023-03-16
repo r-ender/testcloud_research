@@ -1,4 +1,3 @@
-
 #tswcssbuttons {
 	width: 310px ;
 	max-width: 150% ;
@@ -6,6 +5,7 @@
 	margin: auto;
     	line-height: 45px;
 	font-size: 28px;
+	padding-right: 25px;
 }
 #tswcssbuttons ul {
 	margin: 0px ;
