@@ -1,11 +1,13 @@
 #tswcssbuttons {
-	width: 310px ;
-	max-width: 150% ;
+	width: 17vw ;
+	max-width: 100% ;
 	text-align: center ;
 	margin: auto;
     	line-height: 45px;
-	font-size: 28px;
-	padding-right: 25px;
+	font-size: 1.5vw;
+	padding-right: 20px;
+	transform: translate(-10%,-10%);
+
 }
 #tswcssbuttons ul {
 	margin: 0px ;
