@@ -37,9 +37,10 @@ div#tswsidecol {
 div#tswcontent {
 	float: right ;
 	width: 66.67% ;
+	min-width: 40vw;
 	color: #000 ;
 	background-color: #eb8d00 ;
-	transform: translate(-10%,-5%);
+	transform: translate(-10%,-7%);
 }
 @media only screen and (max-width: 629px) {
 	div#tswsidecol {
@@ -78,9 +79,65 @@ div#tswheader {
 div#tswfooter {
 	color: #000 ;
 	background-color: #88a6ab ;
-	height: 35vh;
+	height: auto;
+	min-height: 30vh;
 	font-family: Arial, Helvetica, sans-serif ;
-	text-align: left ;
+	max-width: 95%;
+	width: auto;
+	margin-left:3vw;
+
+}
+
+div#footer_col_left{
+	text-align: left;
+	width: auto;
+	max-width: 30%;
+	max-height: 20vh;
+	min-width:10%;
+}
+
+div#footer_col_right{
+	max-width: 70%;
+	min-width:20%;
+	width: auto;
+	height: auto;
+	max-height: 20vh;
+}
+
+
+#donate {
+  position: relative;
+  background: url("file:///home/gast/Schreibtisch/http_server/images/africa_map.jpg") center;
+  border-radius: 50%;
+  font-size:1vw; 
+  left: 1vw;
+  bottom: -6vh;
+  max-width: 30vw;
+  max-height: 28vh;
+
+	width: 280px;  height: 265px;
+	text-align: center; line-height: 380%;
+
+  text-shadow: 1px 1px 5px #993300;
+  -webkit-transition: all 800ms;
+  transition: all 400ms;
+}
+
+#donate a{
+
+    border-left: 1px solid darken(#993300, 25%);
+    color: darken(#993300, 30%);
+
+    -webkit-transition: all 600ms 200ms;
+    transition: all 600ms 200ms;
+
+}
+
+#donate a:hover{
+	background-position: -100% 0;
+	border-left: 1px solid lighten(#993300, 5%);
+      	color: #fff;
+      	text-shadow: 0 0 10px #000;
 }
 
 
@@ -97,16 +154,20 @@ div#tswfooter {
 	position: absolute;
 	height: 13vh;
 	width: 13vw;
-	transform: translate(10%,0);
+	transform: translate(20%,0);
 }
 
 .bottomtext{
-	position: absolute;  /*kein float möglich, dafür wäre relativ nötig */	
-	left: 3vw;
+	position: relative;  /*kein float möglich, dafür wäre relativ nötig */	
+	left: 4vw;
+	bottom: -2vh;
 	line-height: 4vh;
 	font-size: 3vh;
 	padding-top: 5vh;
-	
+	padding-right: 10px;
+	margin-right: 5px;
+	width: auto;
+	white-space: normal;
 }
 
 
@@ -158,16 +219,31 @@ div#tswfooter {
 }	
 
 /* ----------------------- contact form ------------------- */
+/* Add a background color and some padding around the form */
+.contact-form {
+  border-radius: 5px;
+  background-color: #88a6ab;
+  padding: 5px;
+  padding-left: 10px;
+  margin-left: 10px;
+  transform: scale(0.8,0.8);
+  width: 40%;
+  position: relative;
+  left: 33vw;
+  bottom: 16vh;
+  height: auto;
+  max-height: 10vh;
+} 
 
  /* Style inputs with type="text", select elements and textareas */
 input[type=text], select, textarea {
   width: 100%; /* Full width */
-  padding: 15px; /* Some padding */ 
+  padding: 10px; /* Some padding */ 
   border: 1px solid #ccc; /* Gray border */
   border-radius: 4px; /* Rounded borders */
   box-sizing: border-box; /* Make sure that padding and width stays in place */
   margin-top: 6px; /* Add a top margin */
-  margin-bottom: 16px; /* Bottom margin */
+  margin-bottom: 10px; /* Bottom margin */
   resize: vertical; /* Allow the user to vertically resize the textarea (not horizontally) */
 }
 
@@ -180,9 +256,17 @@ input[type=submit] {
   border-radius: 4px;
   cursor: pointer;
   position: relative;
-  left: 45vw;
-  bottom: 20vh;
-  transform: scale(2.5,2.5);
+  left: 30vw;
+  bottom: 17vh;
+  /* transform: scale(2,2); */
+  min-width: 4vw;
+  width: 8vw;
+  max-width: 10vw;
+  height: auto + 10px;
+  max-height: 10vh;
+  min-height: 3vh;
+  font-size: 2vw;
+  text-align: center;
 }
 
 /* When moving the mouse over the submit button, add a darker green color */
@@ -190,14 +274,3 @@ input[type=submit]:hover {
   background-color: #45a049;
 }
 
-/* Add a background color and some padding around the form */
-.contact-form {
-  border-radius: 5px;
-  background-color: #88a6ab;
-  padding: 5px;
-  transform: scale(0.8,0.8);
-  width: 40%;
-  position: absolute;
-  left: 550px;
-  bottom: -360px;
-} 
