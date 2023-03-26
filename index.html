@@ -12,12 +12,13 @@
     <link rel="stylesheet" type="text/css" media="all" href="styles.css">
     <link rel="icon" type="image/jpg" href="../images/dorlan_favicon.png">
   </head>
-  <body style="             background-color: #ffff66 ;">
+  <body style="       background-color: #ffff66 ;">
     <div id="tswcontainer">
       <div id="tswheader">
         <!-- start of header section: insert your logo, etc, here -->
         <div class="bridge_img_container"> <img src="../images/bridges3.png" alt="together stronger">
-          <div class="bridge_img_centeredtext"><b>D | O | R | L | A | N </b></div>
+          <div class="bridge_img_centeredtext"><b>D | O | R | L | A
+              | N </b></div>
         </div>
         <!-- end of header section: insert your logo, etc, above this line --> </div>
       <div id="tswcentrecombo">
@@ -92,7 +93,7 @@
                 <b> </b>
                 <li><b><a href="reisen/index.html">Travel</a></b></li>
                 <b> </b>
-                <li><b><a href="technik/index.html">Technology</a></b></li>
+                <li><b><a href="technik/index.html"> <span style="padding-left: -25px;">Technology</span></a></b></li>
                 <b> </b>
                 <li><b><a href="mindpsyche/index.html">Mindset</a></b></li>
                 <b> </b>
@@ -119,12 +120,12 @@
           </div>
           <div id="usa-gb"> <a href="index.html"><img src="../images/usa_gb.png"></a>
           </div>
-          <div id="donate">
-            <h1>
-              <div> <a href="https://www.savethechildren.org/us/where-we-work/africa">DONATE
-                  <br> for <br>
-                  Africa</a></div>
-            </h1>
+          <div id="donate"> <a href="https://www.savethechildren.org/us/where-we-work/africa">
+              <p style="transform: translate(0,120%);"><span style="color: #ff0000;">
+                  DONATE <br>
+                  for <br>
+                  Africa </span></p>
+              <img src="../images/africa_map.jpg" style="border-radius: 50%;"></a>
           </div>
           <!-- end of side column: put your navigation menu, etc, above this line -->
         </div>
@@ -139,10 +140,10 @@
         </div>
         <div id="footer_col_right">
           <div class="contact-form" style="transform: translate(10%,0%);">
-            <form action="index_php.html"> <label for="name">Name</label> <input
-                id="name" name="contactname" placeholder="Please tell me your name here..."
-                type="text"> <label for="subject">Subject</label> <textarea id="subject"
-name="subject" placeholder="What would you like to tell me? ... " style="height:13vh;"></textarea>
+            <form method="post" action="action_page.php"> <label for="name">Name</label>
+              <input name="name" placeholder="Please tell me your name here..."
+                type="text"> <label for="subject">Subject</label> <textarea name="subject"
+type="text" placeholder="What would you like to tell me? ... " style="height:13vh;"></textarea>
               <input value="Submit" type="submit"> </form>
           </div>
         </div>
