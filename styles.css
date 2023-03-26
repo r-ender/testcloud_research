@@ -29,6 +29,7 @@ div#tswothersidecol {
 	width: 33.33% ;
 	color: #000 ;
 	background-color: #ffff66 ;
+	margin-top: 30px;
 }
 
 /* das sind die Links (youtube, instagram, etc. */
@@ -45,6 +46,7 @@ div#tswcontent {
 	color: #000 ;
 	background-color: #eb8d00 ;
 	transform: translate(-10%,-7%);
+	margin-top: 40px;
 }
 
 div#tswcontproper {
@@ -67,7 +69,7 @@ div#tswfooter {
 	color: #000 ;
 	background-color: #88a6ab ;
 	height: auto;
-	min-height: 30vh;
+	min-height: 35vh;
 	font-family: Arial, Helvetica, sans-serif ;
 	max-width: 95%;
 	width: auto;
@@ -288,13 +290,14 @@ input[type=submit]:hover {
 
 
 
-@media only screen and (max-width: 629px) {
+@media only screen and (max-width: 629px) and (orientation: portrait) {
 
 
 	div#tswothersidecol {
 		float: top ;
 		width: auto;
 		min-width: 20%;
+		margin-top: 10px;
 	}
 
 		#tswcssbuttons {
@@ -339,7 +342,7 @@ input[type=submit]:hover {
 		float: right ;
 		width: 70% ;
 		margin-top: 5vh;
-		transform: translate(30%,-7%);
+		transform: translate(30%,-6%);
 	}
 
 	div#tswcontproper {
@@ -358,7 +361,7 @@ input[type=submit]:hover {
 		color: #000 ;
 		background-color: #88a6ab ;
 		height: auto;
-		min-height: 30vh;
+		min-height: 35vh;
 		font-family: Arial, Helvetica, sans-serif ;
 		max-width: 95%;
 		width: auto;
@@ -367,33 +370,33 @@ input[type=submit]:hover {
 
 
 	#d-a-ch{
-		transform: translate(10%,-2050%); 
+		transform: translate(10%,-1750%); 
 		height: auto; 
 		width: 13vw;
 	}
 
 	#usa-gb{
-		transform: translate(150%,-2150%); 
+		transform: translate(150%,-1850%); 
 		height: auto; 
 		width: 11vw;
 	}
 
 	#youtube-link{
-		transform: translate(10%,-840%);  
+		transform: translate(10%,-1030%);  
 		width: 24vw;
 		height: auto;
 		background-color: #ffff66 ;
 	}
 
 	#insta-link{
-		transform: translate(10%,-740%); 
+		transform: translate(10%,-930%); 
 		width: 25vw; 
 		height: auto;
 	}
 
 
 	#donate {
-		transform: translate(25%, -90%);
+		transform: translate(25%, -140%);
 		width: 15vw;  
 		height: auto;
 		line-height: 200%;
@@ -430,10 +433,42 @@ input[type=submit]:hover {
 		position: absolute;
 		height: 16vh;
 		width: 16vw;
-		transform: translate(37%,-10%);
+		transform: translate(37%,-20%);
 	}
+	
+	.contact-form {
+		  transform: scale(0.6,0.6);
+		} 
 
 }
 
+
+
+@media only screen and (max-width: 929px) and (orientation: landscape) {
+
+
+	div#tswcontent {
+		margin-bottom: 0px;
+	}	
+	
+	div#tswcontproper {
+		font-size: 1vw;
+		height: 600px;
+		/* to be adapted */ 
+		}
+		
+		
+	div#tswcentrecombo {
+		padding-top: 5px;
+		padding-bottom: 5px;
+	}
+		
+	.timeline {
+	  background: var(--primary-color);
+	  margin-top: 20px; 
+	  margin-left: 5px;
+	}
+
+}
 
 
