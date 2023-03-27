@@ -74,11 +74,25 @@
                 </div>
               </div>
             </div>
-            <p> For clarification, I use the American way of writing the date
-              (mm - dd - yyyy).<br>
-              If you want me to test something or have any other concerns
-              ---&gt; <a href="contactform.html"> hit me up </a></p>
-            <p>&nbsp;</p>
+            
+            <div class="search-form">
+		<form action="search.html" method="get">
+		      <input type="text" placeholder="Enter Searchwords...">
+		       <button type="submit"> <span style="font-size: 1.3vw; transform: translate(30%,60%);">&#128269;</span> </button>
+	    	</form>
+	    </div>
+	    
+	    <!--
+	    	für google-search formular:
+			<div class="search-form">
+			    <form action="search.html" method="get">  
+				<input type="text" name="q" id="q" value="" placeholder="Type in searchwords..." style="height:3vh;">
+				<input value="Search" type="submit"> 
+			    </form>
+			  </div> 
+          
+          -->
+	    
             <!-- end of content column: put your content above this line --> </div>
         </div>
         <div id="tswothersidecol">
@@ -88,17 +102,10 @@
               <ul>
                 <li><b><a href="index.html">Home</a></b></li>
                 <li><b><a href="finanzen/index.html">Finance</a></b></li>
-                <b> </b>
                 <li><b><a href="immobilien/index.html">Real Estate</a></b></li>
-                <b> </b>
                 <li><b><a href="reisen/index.html">Travel</a></b></li>
-                <b> </b>
                 <li><b><a href="technik/index.html"> <span style="padding-left: -25px;">Technology</span></a></b></li>
-                <b> </b>
-                <li><b><a href="mindpsyche/index.html">Mindset</a></b></li>
-                <b> </b>
-                <li><b><a href="dating/index.html">Dating / Love</a></b></li>
-                <b> </b>
+                <li><b><a href="life/index.html">Life</a></b></li>
                 <li><b><a href="sitemap.html">About / Sitemap</a></b></li>
               </ul>
             </div>
@@ -120,8 +127,8 @@
           </div>
           <div id="usa-gb"> <a href="index.html"><img src="../images/usa_gb.png"></a>
           </div>
-          <div id="donate"> <a href="https://www.savethechildren.org/us/where-we-work/africa">
-              <p style="transform: translate(0,120%);"><span style="color: #ff0000;">
+          <div id="donate">  <a href="https://www.savethechildren.org/us/where-we-work/africa">
+              <p style="transform: translate(0,130%);"><span style="color: #ff0000;">
                   DONATE <br>
                   for <br>
                   Africa </span></p>
@@ -141,9 +148,9 @@
         <div id="footer_col_right">
           <div class="contact-form" style="transform: translate(10%,0%);">
             <form method="post" action="action_page.php"> <label for="name">Name</label>
-              <input id="name" name="name" placeholder="Please tell me your name here..."
+              <input id="name" name="name" style="font-size: 1.5vw;" placeholder="Please tell me your name..."
                 type="text"> <label for="subject">Subject</label> <textarea name="subject"
-type="text" placeholder="What would you like to tell me? ... " style="height:13vh;"></textarea>
+type="text" style="font-size: 1.5vw;" placeholder="What would you like to tell me? ... " style="height:13vh;"></textarea>
               <input value="Submit" type="submit"> </form>
           </div>
         </div>

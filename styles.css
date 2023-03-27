@@ -288,6 +288,44 @@ input[type=submit]:hover {
   background-color: #45a049;
 }
 
+.search-form {
+  float: none;
+  width: 80%;
+  padding-top: 25px;
+  padding-left: 25px;
+}
+
+.search-form input[type=text] {
+  float: none;
+  width: 45vw; 
+  padding: 6px;
+  border-radius: 999px;
+  border: 4px solid orangered;
+  margin-top: 8px;
+  margin-right: 10px;
+  font-size: 1vw;
+  background: #333;
+  color: #ddd;
+}
+
+.search-form button {
+  float: none;
+  color: #fff;
+  transform: translate(1120%,-147%);
+  padding-left: 6px;
+  margin-top: 8px;
+  margin-right: 0px;
+  background: #333;
+  height: 4.5vh;
+  width: 3.5vw;
+  border-radius: 999px;
+  border: 4px solid orangered;
+  cursor: pointer;
+}
+
+.search-form button:hover {
+  background: #ddd;
+}
 
 
 @media only screen and (max-width: 629px) and (orientation: portrait) {
@@ -343,6 +381,8 @@ input[type=submit]:hover {
 		width: 70% ;
 		margin-top: 5vh;
 		transform: translate(30%,-6%);
+		height: 780px;
+		margin-bottom: -3px;
 	}
 
 	div#tswcontproper {
@@ -353,7 +393,6 @@ input[type=submit]:hover {
 		float: right ;
 		width: 100% ;
 		height: 0vh;
-		margin-top: 40px;
 	}
 	
 
@@ -366,6 +405,7 @@ input[type=submit]:hover {
 		max-width: 95%;
 		width: auto;
 		margin-left:1vw;
+		transform: translate(0,-10%);
 	}
 
 
@@ -416,8 +456,7 @@ input[type=submit]:hover {
 		padding-right: 10px;
 		margin-right: 5px;
 		width: auto;
-		white-space: normal;
-			
+		white-space: normal;		
 	}
 
 
@@ -439,6 +478,22 @@ input[type=submit]:hover {
 	.contact-form {
 		  transform: scale(0.6,0.6);
 		} 
+		
+	
+	.search-form input[type=text] {
+	  	width: 30vw; 
+	  	font-size: 2vw;
+	  	transform: translate(-10%,0);
+	  	transform: scale(1.3,1.3); 
+	  	padding-top: 3px;
+	}
+
+	.search-form button {
+		  height: 3.5vh;
+		  width: 5vw;
+		  font-size: 2vw;
+		  transform: translate(630%, -175%);
+	}
 
 }
 
@@ -449,6 +504,7 @@ input[type=submit]:hover {
 
 	div#tswcontent {
 		margin-bottom: 0px;
+		transform: translate(-6%,-10%);
 	}	
 	
 	div#tswcontproper {
@@ -462,12 +518,77 @@ input[type=submit]:hover {
 		padding-top: 5px;
 		padding-bottom: 5px;
 	}
+	
+	div#tswfooter {
+		color: #000 ;
+		background-color: #88a6ab ;
+		height: auto;
+		min-height: 50vh;
+		font-family: Arial, Helvetica, sans-serif ;
+		max-width: 95%;
+		width: auto;
+		margin-left:1vw;
+	}
+	
+	#d-a-ch{
+		transform: translate(-20%,-255%); 
+	}
+	
+	.bridge_img_centeredtext{
+		font-size: 4vw;
+		color: #00ffbe;
+		text-shadow: 0 0 10px black;
+		height: auto; top: -12vh; padding-left: 38vw;
+	}
 		
 	.timeline {
-	  background: var(--primary-color);
-	  margin-top: 20px; 
-	  margin-left: 5px;
+		  background: var(--primary-color);
+		  margin-top: 20px; 
+		  margin-left: 5px;
 	}
+	
+	.contact-form {
+		  transform: scale(0.7,0.7);
+		  font-size: 1.5vw;"
+		  
+	} 
+	
+	.bottomtext{
+		/* display: none; */
+		position: relative;  /*kein float möglich, dafür wäre relativ nötig */	
+		left: 4vw;
+		bottom: -3vh;
+		line-height: 7vh;
+		font-size: 2.5vw;
+		padding-top: 5vh;
+		padding-right: 10px;
+		margin-right: 5px;
+		width: auto;
+		white-space: normal;	
+	}
+	
+	.search-form {
+		  float: none;
+		  width: 80%;
+		  padding-top: 0px;
+		  padding-left: 25px;
+		  transform: translate(5%,-280%);
+		}
+	
+	.search-form input[type=text] {
+	  	width: 30vw; 
+	  	font-size: 1.5vw;
+	  	transform: scale(1.3,1.3); 
+	  	padding-top: 3px;
+	}
+
+	.search-form button {
+		  height: 9vh;
+		  width: 6vw;
+		  font-size: 1.5vw;
+		  transform: translate(60%, 0%);
+	}
+	
 
 }
 
