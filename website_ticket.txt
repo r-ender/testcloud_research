@@ -1,0 +1,1030 @@
+apache2 klappt nicht, darum nutze ich auf lcoudlab mini-httpd
+
+start einfach aus directory website/dorlan/en heraus: sudo mini_httpd
+
+handy-test:  in samsung-browser eingeben:  http://192.168.0.11:80  
+	--> auf samsung display passt anzeige für Portrait und Landscape!
+
+next: 
+nachdem domain angemeldet wurde, search-console und submit-formular einrichten 
+
+auf raspbrry zugreifen: 
+mit LAN-Kabel mit router verbinden.
+anmelden: cloud@Cloud-Lab:~/Desktop/website$ ssh root@192.168.0.32   -   als PW: centos
+
+zip-download von github:	https://github.com/r-ender/testcloud_research/raw/main/Dorlan.zip
+
+checken ob webserver läuft:	[root@localhost ~]# systemctl status httpd
+
+aus [root@localhost ~]# cat /etc/httpd/conf/httpd.conf    lesen unter welcher Dir Folder läuft:
+	---> DocumentRoot "/var/www/rolandoscrew/html"  geändert zu "/var/www/Dorlan/de"
+
+
+Fehler: es werden keine Bilder angezeigt, obwohl ich config-files mit documnet-root reingeschrieben habe ---> erst nachdem ich images unter de gespeichert habe: 
+		--> in config-File schreiben root ist unter /var/www/Dorlan ?   nachdem ich auf oberste Ebene index.html hinkopiert klappt es grötenteils, aber komischerweise nur für 	
+			finanzen,immobilien, nicht für reisen, technik, etc.
+ 
+
+
+auf raspi klappt Dorlan.zip wegen sitemap und landing-page/index.html noch nicht komplett
+Fehler ist nachbildbar wenn mini_httpd in ~/Desktop/testumgebung startet und ich index auf erste ebene kopiere --> aber direkt von de aus zu starten klappt nicht wegen Link auf Bildern
+
+Grundsätzlich passt die Homepage nun, die Darstellung auf dem Handy ist aber noch nicht optimal.
+
+dorlan.de wurde registriert und läuft mittlerweile schon :-)
+
+zertifikat vorhanden, private key vorhanden, übertragen auf raspi und apache2 sicher machen!
+
+
+hardening the webserver:
+Remove Server Version Banner:  Add the following directive and save the httpd.conf:    ServerTokens Prod \  ServerSignature Off
+    				Restart apache
+
+Disable directory browser listing (don't see all files in root-folder of server):     Search for Directory and change Options directive to None or –Indexes
+
+											<Directory /opt/apache/htdocs>
+											Options -Indexes
+											</Directory> 
+											
+ETag (It allows remote attackers to obtain sensitive information like inode number, multipart MIME boundary, and child process through Etag header:
+				--->     Add the following directive and save the httpd.conf : "FileETag None"
+				
+Change root-password: sudo passwd root
+Run Apache from a non-privileged account:
+	A default installation runs as nobody or daemon. Using a separate non-privileged user for Apache is good.
+	The idea here is to protect other services running in case of any security hole.
+		1.) Create a user and group called apache = groupadd apache &&  useradd –G apache apache
+		2.) Change apache installation directory ownership to a newly created non-privileged user: # chown –R apache:apache /opt/apache
+		3.)     Modify httpd.conf: Search for User & Group Directive and change as non-privileged account apache:
+														"	User apache 
+															Group apache	"					
+		4.) check changes: # ps –ef |grep http
+				(You should see one process is running with root. That’s because Apache is listening on port 80 and it has to be started with root.)
+			
+			bei mir: [root@localhost /]# ps -ef | grep http
+				root       610     1  0 12:28 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND
+				apache     641   610  0 12:28 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND
+				apache     642   610  0 12:28 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND
+				apache     643   610  0 12:28 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND
+				apache     644   610  0 12:28 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND
+				apache     645   610  0 12:28 ?        00:00:00 /usr/sbin/httpd -DFOREGROUND	
+				
+Protect binary and configuration directory permission:
+			By default, permission for binary and configuration is 755 meaning any user on a server can view the config. You can disallow another user to get into conf- and bin-folder.
+					--> Change permission of bin and conf folder	# chmod –R 750 bin conf
+					
+	--> how make usr/sbin/httpd ?! run with user apache?  --> apache läuft automatisch unter user apache, all mein Zugriff bloß mit root begehen, somit habe ich hierbei wenig zu ändern/
+	einzustellen.
+
+					
+System Settings Protection:
+In a default installation, users can override apache configuration using .htaccess. If you want to stop users from changing your apache server settings, you can add AllowOverride to None: 
+		<Directory /> 
+		Options -Indexes 
+		AllowOverride None
+		</Directory>
+
+Disable Trace HTTP Request:
+By default Trace method is enabled in Apache web server.Having this enabled can allow Cross Site Tracing attack and potentially giving an option to a hacker to steal cookie information.
+		-->     Add "TraceEnable off" in httpd.conf
+
+
+neuer root-login-PW: !ND1an3r		
+
+
+SSL-Zertifikat in Root-Server ablegen:
+yum install mod_ssl openssl
+
+---> SSL-COnfig-file unter etc/httpd/conf.d/ssl.conf 
+
+certs unter:
+[root@localhost ssl]# pwd
+/home/ssl
+
+[root@localhost ssl]# ls
+dorlan.de_private_key.key  dorlan.de_ssl_certificate.cer  dorlan.de_ssl_certificate_INTERMEDIATE.cer
+
+
+
+Once you receive the signed certificate file, you can add them in httpd-ssl.conf file
+SSLCertificateFile /home/ssl/dorlan.de_ssl_certificate.cer    		#Certificate signed by authority
+SSLCertificateChainFile /home/ssl/dorlan.de_ssl_certificate_INTERMEDIATE.cer  #Certificate signer given by authority
+SSLCertificateKeyFile /home/ssl/dorlan.de_private_key.key 			#Key file which you generated above
+
+--> habe ich entsprechend geändert.
+
+immer fehler: SSLCertificateFile: file '/var/ssl/dorlan.de_ssl_certificate.cer' does not exist or is empty
+checken SELinux oder googeln
+
+[root@localhost home]# sudo apachectl startssl
+The startssl option is no longer supported.
+Please edit httpd.conf to include the SSL configuration settings  <---- vergessen ?
+
+[root@localhost conf.d]# apachectl configtest
+[Wed Apr 05 22:25:31.442494 2023] [so:warn] [pid 1028] AH01574: module ssl_module is already loaded, skipping
+Syntax OK
+
+
+evtl Endung Schuld:
+"openssl x509 -inform DER -in certificate.cer -out certificate.pem"   ?!
+
+	
+nach Änderung auf 
+SSLCertificateChainFile /etc/httpd/ssl/dorlan.de_ssl_certificate_INTERMEDIATE.cer
+SSLCertificateKeyFile /etc/httpd/ssl/dorlan.de_private_key.key
+SSLCertificateFile /etc/httpd/ssl/dorlan.de_ssl_certificate.cer
+
+und etc/httpd/ssl als user "apache" zuweisen führt zum Verschwinden der Fehlermeldung aber httpd startet dennoch nicht
+in httpd.conf habe ich "sslEngine on" wieder auskommentiert, weil das bereits in ssl.conf enthalten ist, dann ist server wieder gestartet
+
+
+server starten klappt aber bei https kommt folgender Fehler:
+The PR_END_OF_FILE_ERROR is a secure connection issue. It’s a Firefox-specific error that happens when the browser can’t establish a secure connection with the website. Therefore, it is a problem on 
+the client-side.
+
+In a nutshell, the error tells you that the browser has run through its list of cipher suites and doesn’t have a match. In a literal sense, it has reached the end of the cipher suite file and 
+returned nothing.
+
+nachdem ich unter httpd.conf alles selbst angefügte unten wieder auskommentiert hatte, trat folgende Fehlermeldung auf bei Firefox:
+SSL_ERROR_INTERNAL_ERROR_ALERT und bei Chrome: ERR_SSL_PROTOCOL_ERROR
+
+
+firefox gibt fehler bei Versuch https zu nutzen:	https://bobcares.com/blog/pr_end_of_file_error/
+
+bei GoogleChrome steht: ERR_SSL_PROTOCOL_ERROR	---> mal mit wireshark versuchen ?!
+
+evtl firewall-einstellung meines Routers? (aber auch wenn ich intern zugreife per https klappt das nicht)
+
+
+
+[root@localhost httpd]# openssl s_client -connect dorlan.de:443
+CONNECTED(00000003)
+depth=2 C = US, O = DigiCert Inc, OU = www.digicert.com, CN = DigiCert Global Root G2
+verify return:1
+depth=1 C = US, O = DigiCert Inc, OU = www.digicert.com, CN = Encryption Everywhere DV TLS CA - G2
+verify return:1
+depth=0 CN = *.dorlan.de
+verify return:1
+---
+Certificate chain
+ 0 s:/CN=*.dorlan.de
+   i:/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=Encryption Everywhere DV TLS CA - G2
+ 1 s:/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=Encryption Everywhere DV TLS CA - G2
+   i:/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=DigiCert Global Root G2
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+MIIF9jCCBN6gAwIBAgIQB0IJUFKQuuLD86PSW1+rUDANBgkqhkiG9w0BAQsFADBu
+MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3
+d3cuZGlnaWNlcnQuY29tMS0wKwYDVQQDEyRFbmNyeXB0aW9uIEV2ZXJ5d2hlcmUg
+RFYgVExTIENBIC0gRzIwHhcNMjMwNDA0MDAwMDAwWhcNMjQwNDAzMjM1OTU5WjAW
+MRQwEgYDVQQDDAsqLmRvcmxhbi5kZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCC
+AQoCggEBAIDD6k+phpLuMIUp6YrD7dqaTPLCqUdS1XNumxTJK34ppvk1sS0m4Qi+
+PZGJu00s+yxrn3/ra5LYCXQTw4Kh9uwX6NyawxpjYw4Q/khZJPNoO4UfQax8OwTH
+M855AqMGiojVzKnSZ6RkNp5v1YLsUEbcMPbwckDrkOxRaxsgZ4CYkNBQwI0oiBKS
+DDxao3+C+IW6qX9xPHjHgbJGQ025nUhXZKq/3288W9aumbj3EnHDKVRlYT1TkMki
+xrc36l+2rixt4TQcqt1y/4Lp3O+R7WdJdIEB36QJ/XHLo8MeMV3HH1o+jIVTF2xl
+Cmp7Q4oUMxLphO27fQkoBLXxkYOQK7sCAwEAAaOCAuYwggLiMB8GA1UdIwQYMBaA
+FHjfkZBf7t6s9sV169VMVVPvJEq2MB0GA1UdDgQWBBQH2Wgnh/N42UXwrLSBdGAY
+lriWvTAhBgNVHREEGjAYggsqLmRvcmxhbi5kZYIJZG9ybGFuLmRlMA4GA1UdDwEB
+/wQEAwIFoDAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwPgYDVR0gBDcw
+NTAzBgZngQwBAgEwKTAnBggrBgEFBQcCARYbaHR0cDovL3d3dy5kaWdpY2VydC5j
+b20vQ1BTMIGABggrBgEFBQcBAQR0MHIwJAYIKwYBBQUHMAGGGGh0dHA6Ly9vY3Nw
+LmRpZ2ljZXJ0LmNvbTBKBggrBgEFBQcwAoY+aHR0cDovL2NhY2VydHMuZGlnaWNl
+cnQuY29tL0VuY3J5cHRpb25FdmVyeXdoZXJlRFZUTFNDQS1HMi5jcnQwCQYDVR0T
+BAIwADCCAX4GCisGAQQB1nkCBAIEggFuBIIBagFoAHYAdv+IPwq2+5VRwmHM9Ye6
+NLSkzbsp3GhCCp/mZ0xaOnQAAAGHTjNmHAAABAMARzBFAiEA+3K4i1c1ZMLL1OVR
+F8x8GpXzaZ8rrMmQ7WE2euRs+7YCIGJ0Vl9cvQvfi/vLQZVoBldrEdhVV/mGSO8t
+tHIzdWIUAHUAc9meiRtMlnigIH1HneayxhzQUV5xGSqMa4AQesF3crUAAAGHTjNm
+QwAABAMARjBEAiBDm+8yAqB+PFm6AiR4PdSyOl9KaPudDQj2PaLMEomjqwIgXPgx
+s03fKYSZQsqYkk/eCj9PBVwBTKlD3ujNiVr8afEAdwBIsONr2qZHNA/lagL6nTDr
+HFIBy1bdLIHZu7+rOdiEcwAAAYdOM2YTAAAEAwBIMEYCIQCa2kW5WZfWhA8HK/ia
+s5+GHXoYwJcY6O9rCAS9/+5rxgIhALQ9NWGX4TH8E6B8kkcLEML8EO/vM3WJaFQJ
+69TXD+XUMA0GCSqGSIb3DQEBCwUAA4IBAQCANMfphdPpWUHtqT21YpzF2/Al7efn
+braIbZX8TtwceuFjygD7vuetcreBEkA33n9IIxgCW0Sq6gPg3DUKOPPekWllU0Bd
+cOMrXElD61hBT4Fgr680iAx+hVSmulIBEqslDY/nfSd+7YmoIQZOke6bb8oJXh3N
+Nedz7jIs+V74cDtxuXEq6UOE4T7kPz9uqijR9O5A6dn3rX3Le8eCUgobfcwD4Sub
+2inYxpwgbzCKLvGKhKy8r7CDG34P1MHNS6pfL2LKqEWCQT7cxNbDc3b5oqpTfR0T
+twvyo4GQGgxWBS8dpIcUODA1qrGbGT3xjerfBYGEhNLqFdMU5vjKXOvD
+-----END CERTIFICATE-----
+subject=/CN=*.dorlan.de
+issuer=/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=Encryption Everywhere DV TLS CA - G2
+---
+No client certificate CA names sent
+Peer signing digest: SHA512
+Server Temp Key: ECDH, P-256, 256 bits
+---
+SSL handshake has read 3422 bytes and written 415 bytes
+---
+New, TLSv1/SSLv3, Cipher is ECDHE-RSA-AES256-GCM-SHA384
+Server public key is 2048 bit
+Secure Renegotiation IS supported
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+SSL-Session:
+    Protocol  : TLSv1.2
+    Cipher    : ECDHE-RSA-AES256-GCM-SHA384
+    Session-ID: 5EAFFDAFA1BFCA3AD1D1A5A434E36AD91BC1E1699329EBACBBEF12EAADC28465
+    Session-ID-ctx: 
+    Master-Key: 95B18FC740735D949135742C6C7AF44FB73EE30EC54773C34CDD5A296D12799E286A99EB998A6E9536EEA9FE0D9A4B0C
+    Key-Arg   : None
+    Krb5 Principal: None
+    PSK identity: None
+    PSK identity hint: None
+    TLS session ticket lifetime hint: 300 (seconds)
+    TLS session ticket:
+    0000 - dd 66 ad 37 35 b6 c3 2b-4f ea 72 f3 34 47 4f b4   .f.75..+O.r.4GO.
+    0010 - 4f c5 84 d2 d2 88 7c 82-c7 53 e4 2d 8e 43 3f ca   O.....|..S.-.C?.
+    0020 - 76 43 5c 38 48 58 2e 93-53 0d 48 d5 da 27 19 c3   vC\8HX..S.H..'..
+    0030 - d6 25 aa 14 9c a4 d8 80-87 e7 62 56 2f 2b 0d 18   .%........bV/+..
+    0040 - 06 ef 57 03 03 27 cd 17-83 43 5e 05 e8 d3 af b5   ..W..'...C^.....
+    0050 - 85 3e a7 1f cb 54 b5 86-17 58 77 51 99 bd 1c 7d   .>...T...XwQ...}
+    0060 - c7 ce e0 72 f1 c6 1d 1b-12 b9 ce 18 25 b2 7a 8b   ...r........%.z.
+    0070 - 60 8d 86 fc 06 26 1a b3-9f 65 d7 41 fc 6b 0b b1   `....&...e.A.k..
+    0080 - 8f dd 49 cc e5 f5 bb 2f-c6 a8 47 66 76 39 40 4f   ..I..../..Gfv9@O
+    0090 - 85 ca ee b7 e7 46 5f 41-a5 ac 8b 69 f1 fb 35 2e   .....F_A...i..5.
+    00a0 - 1b 9c 8e a5 49 97 06 b9-e1 25 f5 50 55 b0 80 70   ....I....%.PU..p
+    00b0 - 7f 3e 8c 48 40 1e e6 75-5b 5e cf 4b 31 e6 79 d4   .>.H@..u[^.K1.y.
+
+    Start Time: 1680769921
+    Timeout   : 300 (sec)
+    Verify return code: 0 (ok)
+---
+closed
+
+
+---> erstmal backup der Konfig von apache und schauen ob upgrade auf apache2 mölglich ist
+
+Dependencies Resolved
+
+================================================================================================================================================================================
+ Package                               Arch                                  Version                                               Repository                              Size
+================================================================================================================================================================================
+Removing:
+ httpd                                 armv7hl                               2.4.6-98.el7.centos.6                                 @updates                               9.0 M
+Removing for dependencies:
+ mod_ssl                               armv7hl                               1:2.4.6-98.el7.centos.6                               @updates                               195 k
+
+Transaction Summary
+================================================================================================================================================================================
+Remove  1 Package (+1 Dependent package)
+
+Installed size: 9.2 M
+
+
+---> conf-file auf nötigstes abspecken
+
+( evtl in httpd.conf listen to 443 ?! )
+
+https://hbayraktar.medium.com/how-to-install-ssl-certificate-on-apache-for-centos-7-38c25b84d8b1
+---> Make them readable by root only.
+
+
+
+neuer Fehler aufgetaucht/ausgegeben:
+140066946028864:error:14094438:SSL routines:ssl3_read_bytes:tlsv1 alert internal error:../ssl/record/rec_layer_s3.c:1543:SSL alert number 80
+
+OpenSSL configuration (in ~/etc/ssl/openssl.cnf) which might be more restrictive than your system default?
+
+evtl kommt openssl in die Quere ?!  (keine hinweise in /etc/pki/tls/openssl.cnf )
+
+evtl mal checken ssl in OPENSSLDIR abzulegen und testen ?!
+
+[root@localhost httpd]# openssl version -a
+OpenSSL 1.0.2k-fips  26 Jan 2017
+built on: reproducible build, date unspecified
+platform: linux-armv4
+options:  bn(64,32) md2(int) rc4(ptr,char) des(idx,cisc,16,long) idea(int) blowfish(ptr) 
+compiler: gcc -I. -I.. -I../include  -fPIC -DOPENSSL_PIC -DZLIB -DOPENSSL_THREADS -D_REENTRANT -DDSO_DLFCN -DHAVE_DLFCN_H -DKRB5_MIT -Wall -O2 -g -pipe -Wall -Wp,-D_FORTIFY_SOURCE=2 -fexceptions -fstack-protector-strong --param=ssp-buffer-size=4 -grecord-gcc-switches   -march=armv7-a -mfpu=vfpv3-d16  -mfloat-abi=hard -Wa,--noexecstack -DPURIFY -DOPENSSL_BN_ASM_MONT -DOPENSSL_BN_ASM_GF2m -DSHA1_ASM -DSHA256_ASM -DSHA512_ASM -DAES_ASM -DBSAES_ASM -DGHASH_ASM
+OPENSSLDIR: "/etc/pki/tls"
+engines:  dynamic 
+
+
+cloud@Cloud-Lab:~$ openssl s_client -connect dorlan.de:443 -servername dorlan.de
+CONNECTED(00000003)
+139674440934720:error:14094438:SSL routines:ssl3_read_bytes:tlsv1 alert internal error:../ssl/record/rec_layer_s3.c:1543:SSL alert number 80
+---
+no peer certificate available
+---
+No client certificate CA names sent
+---
+SSL handshake has read 7 bytes and written 301 bytes
+Verification: OK
+---
+New, (NONE), Cipher is (NONE)
+Secure Renegotiation IS NOT supported
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+Early data was not sent
+Verify return code: 0 (ok)
+
+
+
+cloud@Cloud-Lab:~$ openssl
+OpenSSL> version
+OpenSSL 1.1.1f  31 Mar 2020
+
+[root@localhost httpd]# openssl
+OpenSSL> version
+OpenSSL 1.0.2k-fips  26 Jan 2017
+
+
+---> updaten ?!
+
+cloud@Cloud-Lab:~$ openssl s_client -connect google.de:443
+CONNECTED(00000003)
+depth=2 C = US, O = Google Trust Services LLC, CN = GTS Root R1
+verify return:1
+depth=1 C = US, O = Google Trust Services LLC, CN = GTS CA 1C3
+verify return:1
+depth=0 CN = *.google.de
+verify return:1
+---
+Certificate chain
+ 0 s:CN = *.google.de
+   i:C = US, O = Google Trust Services LLC, CN = GTS CA 1C3
+ 1 s:C = US, O = Google Trust Services LLC, CN = GTS CA 1C3
+   i:C = US, O = Google Trust Services LLC, CN = GTS Root R1
+ 2 s:C = US, O = Google Trust Services LLC, CN = GTS Root R1
+   i:C = BE, O = GlobalSign nv-sa, OU = Root CA, CN = GlobalSign Root CA
+---
+
+
+
+
+ Point SSLCertificateFile at a PEM encoded certificate.  !!
+ 
+ [root@localhost ssl]# openssl x509 -inform der -in dorlan.de_ssl_certificate.cer -out dorlan.de_ssl_certificate.pem
+unable to load certificate
+3069859052:error:0D0680A8:asn1 encoding routines:ASN1_CHECK_TLEN:wrong tag:tasn_dec.c:1239:
+3069859052:error:0D07803A:asn1 encoding routines:ASN1_ITEM_EX_D2I:nested asn1 error:tasn_dec.c:405:Type=X509
+----> certificate is already in PEM format. Just rename it from certificate.cer to certificate.pem
+
+
+
+
+
+
+cloud@Cloud-Lab:~$ openssl s_client --debug -connect google.de:443 -msg
+CONNECTED(00000003)
+>>> ??? [length 0005]
+    16 03 01 01 28
+>>> TLS 1.3, Handshake [length 0128], ClientHello
+    01 00 01 24 03 03 bb ac e0 e7 27 f6 c7 ae 57 96
+	...
+    5c 9a 48 f7 9b d2 36 01 57 5d 4f 64 89 ea 0f fd
+    b8 8d 75 32 de fe c6 22
+write to 0x555ac642f170 [0x555ac643fcd0] (301 bytes => 301 (0x12D))
+0000 - 16 03 01 01 28 01 00 01-24 03 03 bb ac e0 e7 27   ....(...$......'
+	...
+0120 - 64 89 ea 0f fd b8 8d 75-32 de fe c6 22            d......u2..."
+read from 0x555ac642f170 [0x555ac64369c3] (5 bytes => 5 (0x5))
+0000 - 16 03 03 00 7a                                    ....z
+<<< ??? [length 0005]
+    16 03 03 00 7a
+read from 0x555ac642f170 [0x555ac64369c8] (122 bytes => 122 (0x7A))
+0000 - 02 00 00 76 03 03 f3 06-16 dc 05 5b 17 01 87 81   ...v.......[....
+	...
+0070 - 97 ae 6c 4f 00 2b 00 02-03 04                     ..lO.+....
+<<< TLS 1.3, Handshake [length 007a], ServerHello
+    02 00 00 76 03 03 f3 06 16 dc 05 5b 17 01 87 81
+	...
+    97 ae 6c 4f 00 2b 00 02 03 04
+read from 0x555ac642f170 [0x555ac64369c3] (5 bytes => 5 (0x5))
+0000 - 14 03 03 00 01                                    .....
+<<< ??? [length 0005]
+    14 03 03 00 01
+read from 0x555ac642f170 [0x555ac64369c8] (1 bytes => 1 (0x1))
+0000 - 01                                                .
+read from 0x555ac642f170 [0x555ac64369c3] (5 bytes => 5 (0x5))
+0000 - 17 03 03 10 42                                    ....B
+<<< ??? [length 0005]
+    17 03 03 10 42
+read from 0x555ac642f170 [0x555ac64369c8] (4162 bytes => 4162 (0x1042))
+0000 - 98 9a c6 65 bb 3c 04 60-f7 0c 14 8b 45 df 74 ec   ...e.<.`....E.t.
+	...
+1020 - d3 56 9a 4f 3b bf 33 af-6d c1 d6 1b 04 f4 21 40   .V.O;.3.m.....!@
+1030 - 48 9a b9 e1 d9 94 9a ae-53 2a e4 28 88 e6 f8 94   H.......S*.(....
+1040 - 88 10                                             ..
+<<< TLS 1.3 [length 0001]
+    16
+<<< TLS 1.3, Handshake [length 0006], EncryptedExtensions
+    08 00 00 02 00 00
+<<< TLS 1.3, Handshake [length 0fa7], Certificate
+    0b 00 0f a3 00 00 0f 9f 00 04 90 30 82 04 8c 30
+    82 03 74 a0 03 02 01 02 02 11 00 be cd 47 58 6a
+    02 62 3a 0a de c9 7e 38 8a de 9e 30 0d 06 09 2a
+	...
+    be 66 92 19 94 55 6c d4 29 b2 0d c1 66 5b e2 77
+    49 48 28 ed 9d d7 1a 33 72 53 b3 82 35 cf 62 8b
+    c9 24 8b a5 b7 39 0c bb 7e 2a 41 bf 52 cf fc a2
+    96 b6 c2 82 3f 00 00
+depth=2 C = US, O = Google Trust Services LLC, CN = GTS Root R1
+verify return:1
+depth=1 C = US, O = Google Trust Services LLC, CN = GTS CA 1C3
+verify return:1
+depth=0 CN = *.google.de
+verify return:1
+<<< TLS 1.3, Handshake [length 0050], CertificateVerify
+    0f 00 00 4c 04 03 00 48 30 46 02 21 00 81 bb a5
+    69 b7 92 96 e0 e5 39 cf 29 99 94 86 91 f1 6f 73
+    20 f8 bc 70 c8 5e 7d e2 56 c4 d2 1c ad 02 21 00
+    e4 e5 be c1 fb 93 a6 3d 01 d8 2f 05 6f 49 81 83
+    10 07 0d a2 af 6c 58 29 d9 88 68 cf d8 28 40 69
+<<< TLS 1.3, Handshake [length 0034], Finished
+    14 00 00 30 18 44 26 66 a7 24 10 bf 45 03 d3 4f
+    fd 7b 92 4a d0 19 e6 5b 73 45 97 fc 1e 25 40 43
+    b8 02 cd 02 88 ee 66 27 06 25 b0 dd 5d d0 54 6e
+    e8 dd 37 c1
+>>> ??? [length 0005]
+    14 03 03 00 01
+>>> TLS 1.3, ChangeCipherSpec [length 0001]
+    01
+>>> ??? [length 0005]
+    17 03 03 00 45
+>>> TLS 1.3 [length 0001]
+    16
+>>> TLS 1.3, Handshake [length 0034], Finished
+    14 00 00 30 8f ab 73 24 0b 82 6e b9 96 37 4a 23
+    f4 84 3c 6a f6 c6 99 03 71 fe fa 96 26 6a b2 96
+    f0 d0 c1 35 df eb 76 ab cf 26 ac 06 eb 07 f5 4d
+    53 8e 32 be
+write to 0x555ac642f170 [0x555ac643fcd0] (80 bytes => 80 (0x50))
+0000 - 14 03 03 00 01 01 17 03-03 00 45 83 37 94 10 fa   ..........E.7...
+0010 - af 41 c6 d2 57 88 62 93-69 62 07 34 ed 9c 63 12   .A..W.b.ib.4..c.
+0020 - bc 55 d9 5a 87 07 1e 4e-dd 66 e2 9c 93 c2 6b 37   .U.Z...N.f....k7
+0030 - 93 64 fb 35 0e c1 bb 19-25 d5 9b 6a 05 86 34 e7   .d.5....%..j..4.
+0040 - d2 bc bb d2 d9 21 e7 9d-20 03 c7 bc b1 12 17 e4   .....!.. .......
+---
+Certificate chain
+ 0 s:CN = *.google.de
+   i:C = US, O = Google Trust Services LLC, CN = GTS CA 1C3
+ 1 s:C = US, O = Google Trust Services LLC, CN = GTS CA 1C3
+   i:C = US, O = Google Trust Services LLC, CN = GTS Root R1
+ 2 s:C = US, O = Google Trust Services LLC, CN = GTS Root R1
+   i:C = BE, O = GlobalSign nv-sa, OU = Root CA, CN = GlobalSign Root CA
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+MIIEjDCCA3SgAwIBAgIRAL7NR1hqAmI6Ct7JfjiK3p4wDQYJKoZIhvcNAQELBQAw
+...
+OWYlU2jc7J41C7BcGv5mWER0In4It5SbHQxwgEpXtYnTlNi39kCL3WGXOp0EGY7V
+YkKpY4WZY9Zkz1Gz3N44uQ==
+-----END CERTIFICATE-----
+subject=CN = *.google.de
+
+issuer=C = US, O = Google Trust Services LLC, CN = GTS CA 1C3
+
+---
+No client certificate CA names sent
+Peer signing digest: SHA256
+Peer signature type: ECDSA
+Server Temp Key: X25519, 253 bits
+---
+SSL handshake has read 4300 bytes and written 381 bytes
+Verification: OK
+---
+New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+Server public key is 256 bit
+Secure Renegotiation IS NOT supported
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+Early data was not sent
+Verify return code: 0 (ok)
+---
+
+
+loud@Cloud-Lab:~$ openssl s_client --debug -connect dorlan.de:443 -msg
+CONNECTED(00000003)
+>>> ??? [length 0005]
+    16 03 01 01 28
+>>> TLS 1.3, Handshake [length 0128], ClientHello
+    01 00 01 24 03 03 60 ec f9 ac 1d 7d 63 40 91 bc
+    5a 63 ac 07 bc 1d ab e4 68 9b 9e a1 5a 3e 6a 15
+    b3 6f a7 cb c5 10 20 57 ef 1e 7b 70 b5 76 90 0e
+    63 41 91 1e a0 77 1b 4d 54 e3 98 02 e9 ba 11 3e
+    aa a9 96 cb 21 5e 6f 00 3e 13 02 13 03 13 01 c0
+    2c c0 30 00 9f cc a9 cc a8 cc aa c0 2b c0 2f 00
+    9e c0 24 c0 28 00 6b c0 23 c0 27 00 67 c0 0a c0
+    14 00 39 c0 09 c0 13 00 33 00 9d 00 9c 00 3d 00
+    3c 00 35 00 2f 00 ff 01 00 00 9d 00 00 00 0e 00
+    0c 00 00 09 64 6f 72 6c 61 6e 2e 64 65 00 0b 00
+    04 03 00 01 02 00 0a 00 0c 00 0a 00 1d 00 17 00
+    1e 00 19 00 18 00 23 00 00 00 16 00 00 00 17 00
+    00 00 0d 00 2a 00 28 04 03 05 03 06 03 08 07 08
+    08 08 09 08 0a 08 0b 08 04 08 05 08 06 04 01 05
+    01 06 01 03 03 03 01 03 02 04 02 05 02 06 02 00
+    2b 00 05 04 03 04 03 03 00 2d 00 02 01 01 00 33
+    00 26 00 24 00 1d 00 20 c8 c3 cd b0 eb 9d ca 32
+    cf d9 7d 99 62 8e c3 1c d6 dc 9e 88 fd af 07 c7
+    2f 34 c2 3c 70 96 da 63
+write to 0x565347ca4170 [0x565347cb4cd0] (301 bytes => 301 (0x12D))
+0000 - 16 03 01 01 28 01 00 01-24 03 03 60 ec f9 ac 1d   ....(...$..`....
+0010 - 7d 63 40 91 bc 5a 63 ac-07 bc 1d ab e4 68 9b 9e   }c@..Zc......h..
+0020 - a1 5a 3e 6a 15 b3 6f a7-cb c5 10 20 57 ef 1e 7b   .Z>j..o.... W..{
+0030 - 70 b5 76 90 0e 63 41 91-1e a0 77 1b 4d 54 e3 98   p.v..cA...w.MT..
+0040 - 02 e9 ba 11 3e aa a9 96-cb 21 5e 6f 00 3e 13 02   ....>....!^o.>..
+0050 - 13 03 13 01 c0 2c c0 30-00 9f cc a9 cc a8 cc aa   .....,.0........
+0060 - c0 2b c0 2f 00 9e c0 24-c0 28 00 6b c0 23 c0 27   .+./...$.(.k.#.'
+0070 - 00 67 c0 0a c0 14 00 39-c0 09 c0 13 00 33 00 9d   .g.....9.....3..
+0080 - 00 9c 00 3d 00 3c 00 35-00 2f 00 ff 01 00 00 9d   ...=.<.5./......
+0090 - 00 00 00 0e 00 0c 00 00-09 64 6f 72 6c 61 6e 2e   .........dorlan.
+00a0 - 64 65 00 0b 00 04 03 00-01 02 00 0a 00 0c 00 0a   de..............
+00b0 - 00 1d 00 17 00 1e 00 19-00 18 00 23 00 00 00 16   ...........#....
+00c0 - 00 00 00 17 00 00 00 0d-00 2a 00 28 04 03 05 03   .........*.(....
+00d0 - 06 03 08 07 08 08 08 09-08 0a 08 0b 08 04 08 05   ................
+00e0 - 08 06 04 01 05 01 06 01-03 03 03 01 03 02 04 02   ................
+00f0 - 05 02 06 02 00 2b 00 05-04 03 04 03 03 00 2d 00   .....+........-.
+0100 - 02 01 01 00 33 00 26 00-24 00 1d 00 20 c8 c3 cd   ....3.&.$... ...
+0110 - b0 eb 9d ca 32 cf d9 7d-99 62 8e c3 1c d6 dc 9e   ....2..}.b......
+0120 - 88 fd af 07 c7 2f 34 c2-3c 70 96 da 63            ...../4.<p..c
+read from 0x565347ca4170 [0x565347cab9c3] (5 bytes => 5 (0x5))
+0000 - 15 03 03 00 02                                    .....
+<<< ??? [length 0005]
+    15 03 03 00 02
+read from 0x565347ca4170 [0x565347cab9c8] (2 bytes => 2 (0x2))
+0000 - 02 50                                             .P
+<<< TLS 1.3, Alert [length 0002], fatal internal_error
+    02 50
+140591026951488:error:14094438:SSL routines:ssl3_read_bytes:tlsv1 alert internal error:../ssl/record/rec_layer_s3.c:1543:SSL alert number 80
+---
+no peer certificate available
+---
+No client certificate CA names sent
+---
+SSL handshake has read 7 bytes and written 301 bytes
+Verification: OK
+---
+New, (NONE), Cipher is (NONE)
+Secure Renegotiation IS NOT supported
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+Early data was not sent
+Verify return code: 0 (ok)
+---
+read from 0x565347ca4170 [0x565347c98fa0] (8192 bytes => 0 (0x0))
+
+---->
+root@localhost logs]# cat ssl_error_log 
+[Wed Apr 05 23:02:43.114984 2023] [ssl:warn] [pid 1227] AH01909: RSA certificate configured for localhost.localdomain:443 does NOT include an ID which matches the server name
+
+[Thu Apr 06 13:09:29.222355 2023] [core:notice] [pid 5728] SELinux policy enabled; httpd running as context system_u:system_r:httpd_t:s0
+[Thu Apr 06 13:09:29.226633 2023] [suexec:notice] [pid 5728] AH01232: suEXEC mechanism enabled (wrapper: /usr/sbin/suexec)
+[Thu Apr 06 13:09:29.458058 2023] [lbmethod_heartbeat:notice] [pid 5728] AH02282: No slotmem from mod_heartmonitor
+[Thu Apr 06 13:09:29.610392 2023] [mpm_prefork:notice] [pid 5728] AH00163: Apache/2.4.6 (CentOS) OpenSSL/1.0.2k-fips configured -- resuming normal operations
+
+aus https://serverfault.com/questions/578061/rsa-certificate-configured-for-server-does-not-include-an-id-which-matches-the-s
+[root@localhost ssl]# openssl x509 -in dorlan.de_ssl_certificate.pem -noout -subject
+	subject= /CN=*.dorlan.de	
+		-----> return the CN the of the certificate. That's the name you have to use in the ServerName directive and to connect to
+
+That did the trick. Copied CN value localhost from output of sudo openssl x509 -in /etc/ssl/certs/server.crt -noout -subject as ServerName localhost in sudo nano /etc/httpd/conf.d/ssl.conf
+
+( on my apache2 config file, instead of having <VirtualHost *:443>, I had <VirtualHost *:80>. As soon as I fixed that, the site was back up and running. --> bei mir eigentlich nicht)
+
+
+"alert number 80" means "internal_error" (see RFC 5246 Section 7.2). It is sent by the TLS server to the TLS client meaning
+
+    An internal error unrelated to the peer or the correctness of the protocol (such as a memory allocation failure) makes it impossible to continue. This message is always fatal.
+
+
+
+--> anderen server versucehn (mini_httpd) ?
+
+
+
+server aufrufen klappt von raspberry aus:
+[root@localhost logs]# openssl s_client -connect dorlan.de:443 -msg
+CONNECTED(00000003)
+>>> TLS 1.2  [length 0005]
+    16 03 01 01 1c
+>>> TLS 1.2 Handshake [length 011c], ClientHello
+    01 00 01 18 03 03 98 b4 7a 20 c3 5e e6 2d 66 c0
+    ad 6b 90 c3 87 68 a0 52 29 1f fb a8 6f 7c d3 53
+    cc f1 42 33 68 d7 00 00 ac c0 30 c0 2c c0 28 c0
+    24 c0 14 c0 0a 00 a5 00 a3 00 a1 00 9f 00 6b 00
+    6a 00 69 00 68 00 39 00 38 00 37 00 36 00 88 00
+    87 00 86 00 85 c0 32 c0 2e c0 2a c0 26 c0 0f c0
+    05 00 9d 00 3d 00 35 00 84 c0 2f c0 2b c0 27 c0
+    23 c0 13 c0 09 00 a4 00 a2 00 a0 00 9e 00 67 00
+    40 00 3f 00 3e 00 33 00 32 00 31 00 30 00 9a 00
+    99 00 98 00 97 00 45 00 44 00 43 00 42 c0 31 c0
+    2d c0 29 c0 25 c0 0e c0 04 00 9c 00 3c 00 2f 00
+    96 00 41 c0 12 c0 08 00 16 00 13 00 10 00 0d c0
+    0d c0 03 00 0a 00 07 c0 11 c0 07 c0 0c c0 02 00
+    05 00 04 00 ff 01 00 00 43 00 0b 00 04 03 00 01
+    02 00 0a 00 0a 00 08 00 17 00 19 00 18 00 16 00
+    23 00 00 00 0d 00 20 00 1e 06 01 06 02 06 03 05
+    01 05 02 05 03 04 01 04 02 04 03 03 01 03 02 03
+    03 02 01 02 02 02 03 00 0f 00 01 01
+<<< ??? [length 0005]
+    16 03 03 00 42
+<<< TLS 1.2 Handshake [length 0042], ServerHello
+    02 00 00 3e 03 03 84 66 c4 32 f5 01 d8 21 30 af
+    27 43 ac e6 9f 46 80 7f a3 1a c0 a9 c5 56 68 b6
+    ae 9f e5 6c e4 3c 00 c0 30 00 00 16 ff 01 00 01
+    00 00 0b 00 04 03 00 01 02 00 23 00 00 00 0f 00
+    01 01
+<<< ??? [length 0005]
+    16 03 03 0a b5
+<<< TLS 1.2 Handshake [length 0ab5], Certificate
+    0b 00 0a b1 00 0a ae 00 05 fa 30 82 05 f6 30 82
+    04 de a0 03 02 01 02 02 10 07 42 09 50 52 90 ba
+
+    75 93 b5 d3 42 1f 6c 44 6a 34 5a fe 1f 59 05 78
+    d4 c8 52 90 ac 69 36 9f 68 5c 2e b7 d9 49 bc a7
+    10 2f e9 4b 0f c4 4f b1 f9 9d 6c 1c 92 39 80 27
+    59 7d 7d c9 db aa 45 3f a5 fe ae 31 09 a7 7e 5d
+    09 42 32 4d 4a
+depth=2 C = US, O = DigiCert Inc, OU = www.digicert.com, CN = DigiCert Global Root G2
+verify return:1
+depth=1 C = US, O = DigiCert Inc, OU = www.digicert.com, CN = Encryption Everywhere DV TLS CA - G2
+verify return:1
+depth=0 CN = *.dorlan.de
+verify return:1
+<<< ??? [length 0005]
+    16 03 03 01 4d
+<<< TLS 1.2 Handshake [length 014d], ServerKeyExchange
+    0c 00 01 49 03 00 17 41 04 3b 77 38 a9 56 f2 ed
+    b7 e1 23 27 cc 2a dd 3a 82 17 79 fb 32 74 95 9c
+    3d 85 e9 04 41 85 47 c1 90 3b b9 7c b5 74 53 d8
+    3a cc f4 56 2d e7 49 39 a2 2a fa 29 7d 31 47 a9
+	...
+    bf 2c 2f 5e ea 4b 08 70 42 05 5b 02 c2 ac 21 0b
+    71 c2 b8 d9 a3 92 cd 13 a8 96 cb 14 32 39 09 eb
+    f0 ec c2 87 da 20 2d 0e c2 0f 1c 79 46 2b 5c 4b
+    e5 92 fe 4d cc 97 b9 ce 29 e9 be cf d1
+<<< ??? [length 0005]
+    16 03 03 00 04
+<<< TLS 1.2 Handshake [length 0004], ServerHelloDone
+    0e 00 00 00
+>>> ??? [length 0005]
+    16 03 03 00 46
+>>> TLS 1.2 Handshake [length 0046], ClientKeyExchange
+    10 00 00 42 41 04 97 e1 04 f2 17 8d 10 39 4d 2b
+    4d 64 6b 74 37 1e b2 ee dc 27 15 71 53 6d c1 df
+    a7 88 7d 16 bf 2e 7e cc 52 4f 63 62 c7 61 c2 ec
+    7d 32 7d 8a 71 f7 dc 3a 53 00 30 60 f8 c6 55 bf
+    54 fa f5 f9 71 0a
+>>> ??? [length 0005]
+    14 03 03 00 01
+>>> TLS 1.2 ChangeCipherSpec [length 0001]
+    01
+>>> ??? [length 0005]
+    16 03 03 00 28
+>>> TLS 1.2 Handshake [length 0010], Finished
+    14 00 00 0c c6 72 3f a8 65 e7 19 b2 96 d8 bf 0f
+<<< ??? [length 0005]
+    16 03 03 00 ca
+<<< TLS 1.2 Handshake [length 00ca]???
+    04 00 00 c6 00 00 01 2c 00 c0 76 45 b3 41 f4 7c
+    eb ac 08 bd 79 3a 0a d9 be 2b dc 52 de 59 5f 1b
+    4e 88 0d e9 07 66 93 3f 36 0d f6 25 05 ea e4 da
+    54 a6 36 9e ad cb c3 70 b6 13 c5 88 83 de 16 99
+    0a d5 87 fb 94 99 5e 38 81 a5 6a 1b 3b 00 05 9e
+    da 82 83 03 a2 12 83 39 2f 5a e2 5e 61 9e 6a e2
+    e7 86 b2 e1 9a 6d c1 be 98 33 9c ff d1 4b b8 11
+    32 8a b1 e3 d1 12 e9 5a d8 f5 4e e9 4c 3f 32 a1
+    49 d1 3a f4 dc 10 b6 84 c2 98 e2 90 9b 10 d9 d0
+    77 6f 36 b9 c2 b6 b8 cd 7a d1 a9 5c 42 96 42 90
+    6c e8 67 48 c6 6d 7b 76 7d 54 39 eb 93 b5 e4 27
+    c8 16 59 0a 8c 9c 65 af dc 45 ee 35 11 13 f9 8e
+    f4 ab f8 5f 6d 61 79 74 cf 11
+<<< ??? [length 0005]
+    14 03 03 00 01
+<<< TLS 1.2 ChangeCipherSpec [length 0001]
+    01
+<<< ??? [length 0005]
+    16 03 03 00 28
+<<< TLS 1.2 Handshake [length 0010], Finished
+    14 00 00 0c 57 37 4c 67 a4 d9 db c4 7b eb fe 1d
+---
+Certificate chain
+ 0 s:/CN=*.dorlan.de
+   i:/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=Encryption Everywhere DV TLS CA - G2
+ 1 s:/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=Encryption Everywhere DV TLS CA - G2
+   i:/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=DigiCert Global Root G2
+---
+Server certificate
+-----BEGIN CERTIFICATE-----
+MIIF9jCCBN6gAwIBAgIQB0IJUFKQuuLD86PSW1+rUDANBgkqhkiG9w0BAQsFADBu
+MQswCQYDVQQGEwJVUzEVMBMGA1UEChMMRGlnaUNlcnQgSW5jMRkwFwYDVQQLExB3
+d3cuZGlnaWNlcnQuY29tMS0wKwYDVQQDEyRFbmNyeXB0aW9uIEV2ZXJ5d2hlcmUg
+RFYgVExTIENBIC0gRzIwHhcNMjMwNDA0MDAwMDAwWhcNMjQwNDAzMjM1OTU5WjAW
+MRQwEgYDVQQDDAsqLmRvcmxhbi5kZTCCASIwDQYJKoZIhvcNAQEBBQADggEPADCC
+AQoCggEBAIDD6k+phpLuMIUp6YrD7dqaTPLCqUdS1XNumxTJK34ppvk1sS0m4Qi+
+PZGJu00s+yxrn3/ra5LYCXQTw4Kh9uwX6NyawxpjYw4Q/khZJPNoO4UfQax8OwTH
+M855AqMGiojVzKnSZ6RkNp5v1YLsUEbcMPbwckDrkOxRaxsgZ4CYkNBQwI0oiBKS
+DDxao3+C+IW6qX9xPHjHgbJGQ025nUhXZKq/3288W9aumbj3EnHDKVRlYT1TkMki
+xrc36l+2rixt4TQcqt1y/4Lp3O+R7WdJdIEB36QJ/XHLo8MeMV3HH1o+jIVTF2xl
+Cmp7Q4oUMxLphO27fQkoBLXxkYOQK7sCAwEAAaOCAuYwggLiMB8GA1UdIwQYMBaA
+FHjfkZBf7t6s9sV169VMVVPvJEq2MB0GA1UdDgQWBBQH2Wgnh/N42UXwrLSBdGAY
+lriWvTAhBgNVHREEGjAYggsqLmRvcmxhbi5kZYIJZG9ybGFuLmRlMA4GA1UdDwEB
+/wQEAwIFoDAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwPgYDVR0gBDcw
+NTAzBgZngQwBAgEwKTAnBggrBgEFBQcCARYbaHR0cDovL3d3dy5kaWdpY2VydC5j
+b20vQ1BTMIGABggrBgEFBQcBAQR0MHIwJAYIKwYBBQUHMAGGGGh0dHA6Ly9vY3Nw
+LmRpZ2ljZXJ0LmNvbTBKBggrBgEFBQcwAoY+aHR0cDovL2NhY2VydHMuZGlnaWNl
+cnQuY29tL0VuY3J5cHRpb25FdmVyeXdoZXJlRFZUTFNDQS1HMi5jcnQwCQYDVR0T
+BAIwADCCAX4GCisGAQQB1nkCBAIEggFuBIIBagFoAHYAdv+IPwq2+5VRwmHM9Ye6
+NLSkzbsp3GhCCp/mZ0xaOnQAAAGHTjNmHAAABAMARzBFAiEA+3K4i1c1ZMLL1OVR
+F8x8GpXzaZ8rrMmQ7WE2euRs+7YCIGJ0Vl9cvQvfi/vLQZVoBldrEdhVV/mGSO8t
+tHIzdWIUAHUAc9meiRtMlnigIH1HneayxhzQUV5xGSqMa4AQesF3crUAAAGHTjNm
+QwAABAMARjBEAiBDm+8yAqB+PFm6AiR4PdSyOl9KaPudDQj2PaLMEomjqwIgXPgx
+s03fKYSZQsqYkk/eCj9PBVwBTKlD3ujNiVr8afEAdwBIsONr2qZHNA/lagL6nTDr
+HFIBy1bdLIHZu7+rOdiEcwAAAYdOM2YTAAAEAwBIMEYCIQCa2kW5WZfWhA8HK/ia
+s5+GHXoYwJcY6O9rCAS9/+5rxgIhALQ9NWGX4TH8E6B8kkcLEML8EO/vM3WJaFQJ
+69TXD+XUMA0GCSqGSIb3DQEBCwUAA4IBAQCANMfphdPpWUHtqT21YpzF2/Al7efn
+braIbZX8TtwceuFjygD7vuetcreBEkA33n9IIxgCW0Sq6gPg3DUKOPPekWllU0Bd
+cOMrXElD61hBT4Fgr680iAx+hVSmulIBEqslDY/nfSd+7YmoIQZOke6bb8oJXh3N
+Nedz7jIs+V74cDtxuXEq6UOE4T7kPz9uqijR9O5A6dn3rX3Le8eCUgobfcwD4Sub
+2inYxpwgbzCKLvGKhKy8r7CDG34P1MHNS6pfL2LKqEWCQT7cxNbDc3b5oqpTfR0T
+twvyo4GQGgxWBS8dpIcUODA1qrGbGT3xjerfBYGEhNLqFdMU5vjKXOvD
+-----END CERTIFICATE-----
+subject=/CN=*.dorlan.de
+issuer=/C=US/O=DigiCert Inc/OU=www.digicert.com/CN=Encryption Everywhere DV TLS CA - G2
+---
+No client certificate CA names sent
+Peer signing digest: SHA512
+Server Temp Key: ECDH, P-256, 256 bits
+---
+SSL handshake has read 3422 bytes and written 415 bytes
+---
+New, TLSv1/SSLv3, Cipher is ECDHE-RSA-AES256-GCM-SHA384
+Server public key is 2048 bit
+Secure Renegotiation IS supported
+Compression: NONE
+Expansion: NONE
+No ALPN negotiated
+SSL-Session:
+    Protocol  : TLSv1.2
+    Cipher    : ECDHE-RSA-AES256-GCM-SHA384
+    Session-ID: 0CCBDA303B20198A5C0ACB4E6BE278F0B6713591D3118F91480A8A73CBBEF570
+    Session-ID-ctx: 
+    Master-Key: 04212D445E51C81A1E1E93122C1A79BC8C272A03F46EDEEC4CE66653404BD4F0C635F7DCA1EC01BB040FD7C0DE132725
+    Key-Arg   : None
+    Krb5 Principal: None
+    PSK identity: None
+    PSK identity hint: None
+    TLS session ticket lifetime hint: 300 (seconds)
+    TLS session ticket:
+    0000 - 76 45 b3 41 f4 7c eb ac-08 bd 79 3a 0a d9 be 2b   vE.A.|....y:...+
+    0010 - dc 52 de 59 5f 1b 4e 88-0d e9 07 66 93 3f 36 0d   .R.Y_.N....f.?6.
+    0020 - f6 25 05 ea e4 da 54 a6-36 9e ad cb c3 70 b6 13   .%....T.6....p..
+    0030 - c5 88 83 de 16 99 0a d5-87 fb 94 99 5e 38 81 a5   ............^8..
+    0040 - 6a 1b 3b 00 05 9e da 82-83 03 a2 12 83 39 2f 5a   j.;..........9/Z
+    0050 - e2 5e 61 9e 6a e2 e7 86-b2 e1 9a 6d c1 be 98 33   .^a.j......m...3
+    0060 - 9c ff d1 4b b8 11 32 8a-b1 e3 d1 12 e9 5a d8 f5   ...K..2......Z..
+    0070 - 4e e9 4c 3f 32 a1 49 d1-3a f4 dc 10 b6 84 c2 98   N.L?2.I.:.......
+    0080 - e2 90 9b 10 d9 d0 77 6f-36 b9 c2 b6 b8 cd 7a d1   ......wo6.....z.
+    0090 - a9 5c 42 96 42 90 6c e8-67 48 c6 6d 7b 76 7d 54   .\B.B.l.gH.m{v}T
+    00a0 - 39 eb 93 b5 e4 27 c8 16-59 0a 8c 9c 65 af dc 45   9....'..Y...e..E
+    00b0 - ee 35 11 13 f9 8e f4 ab-f8 5f 6d 61 79 74 cf 11   .5......._mayt..
+
+    Start Time: 1680789161
+    Timeout   : 300 (sec)
+    Verify return code: 0 (ok)
+---
+<<< ??? [length 0005]
+    15 03 03 00 1a
+<<< TLS 1.2 Alert [length 0002], warning close_notify
+    01 00
+closed
+>>> ??? [length 0005]
+    15 03 03 00 1a
+>>> TLS 1.2 Alert [length 0002], warning close_notify
+    01 00
+
+
+---> vermutung firewall einstellung! --> aber auch wenn ich firewall ausschalte keine Änderung
+
+( lokale firewall:
+	[root@localhost logs]# vi /etc/selinux/config
+	[root@localhost logs]# systemctl stop firewalld
+)
+
+port läuft:
+root@localhost ~]# netstat -tulpn
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      608/sshd            
+tcp        0      0 127.0.0.1:25            0.0.0.0:*               LISTEN      874/master          
+tcp6       0      0 :::22                   :::*                    LISTEN      608/sshd            
+tcp6       0      0 :::443                  :::*                    LISTEN      922/httpd           
+tcp6       0      0 :::80                   :::*                    LISTEN      922/httpd           
+
+
+
+
+versuch mit Handy auf https://dorlan zuzzugreifen
+16:28:58.081410 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.47902 > localhost.https: Flags [S], seq 476618846, win 65535, options [mss 1420,sackOK,TS val 733852655 ecr 0,nop,wscale 8], length 0
+16:28:58.081717 IP6 localhost > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392: ICMP6, destination unreachable,  unreachable prohibited localhost, length 88
+16:28:58.085653 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.47900 > localhost.https: Flags [S], seq 2943243739, win 65535, options [mss 1420,sackOK,TS val 733852654 ecr 0,nop,wscale 8], length 0
+16:28:58.085880 IP6 localhost > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392: ICMP6, destination unreachable,  unreachable prohibited localhost, length 88
+16:28:58.153172 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.47908 > localhost.https: Flags [S], seq 1380655009, win 65535, options [mss 1420,sackOK,TS val 733852673 ecr 0,nop,wscale 8], length 0
+16:28:58.153412 IP6 localhost > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392: ICMP6, destination unreachable,  unreachable prohibited localhost, length 88
+16:28:58.292540 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.47912 > localhost.https: Flags [S], seq 3036919386, win 65535, options [mss 1420,sackOK,TS val 733852705 ecr 0,nop,wscale 8], length 0
+16:28:58.292782 IP6 localhost > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392: ICMP6, destination unreachable,  unreachable prohibited localhost, length 88
+
+
+
+zugriff auf http://dorlan.de klappt aber:
+16:30:19.659257 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880 > localhost.http: Flags [P.], seq 480:919, ack 557, win 66, options [nop,nop,TS val 1696384513 ecr 4167133191], length 439: HTTP: GET /favicon.ico HTTP/1.1
+16:30:19.659464 IP6 localhost.http > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880: Flags [.], ack 919, win 500, options [nop,nop,TS val 4167133603 ecr 1696384513], length 0
+16:30:19.660382 IP6 localhost.http > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880: Flags [P.], seq 557:1001, ack 919, win 501, options [nop,nop,TS val 4167133604 ecr 1696384513], length 444: HTTP: HTTP/1.1 404 Not Found
+16:30:19.660783 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.47928 > localhost.https: Flags [S], seq 1644042409, win 65535, options [mss 1420,sackOK,TS val 733873027 ecr 0,nop,wscale 8], length 0
+16:30:19.661059 IP6 localhost > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392: ICMP6, destination unreachable,  unreachable prohibited localhost, length 88
+16:30:19.681348 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880 > localhost.http: Flags [.], ack 1001, win 67, options [nop,nop,TS val 1696384535 ecr 4167133604], length 0
+16:30:19.805920 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.47932 > localhost.https: Flags [S], seq 368497432, win 65535, options [mss 1420,sackOK,TS val 733873067 ecr 0,nop,wscale 8], length 0
+16:30:19.806275 IP6 localhost > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392: ICMP6, destination unreachable,  unreachable prohibited localhost, length 88
+16:30:20.039373 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880 > localhost.http: Flags [P.], seq 919:1461, ack 1001, win 67, options [nop,nop,TS val 1696384893 ecr 4167133604], length 542: HTTP: GET /de/index.html HTTP/1.1
+16:30:20.039557 IP6 localhost.http > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880: Flags [.], ack 1461, win 500, options [nop,nop,TS val 4167133983 ecr 1696384893], length 0
+16:30:20.043055 IP6 localhost.http > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880: Flags [.], seq 1001:2409, ack 1461, win 501, options [nop,nop,TS val 4167133987 ecr 1696384893], length 1408: HTTP: HTTP/1.1 200 OK
+16:30:20.043100 IP6 localhost.http > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880: Flags [P.], seq 2409:3817, ack 1461, win 501, options [nop,nop,TS val 4167133987 ecr 1696384893], length 1408: HTTP
+16:30:20.043211 IP6 localhost.http > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880: Flags [.], seq 3817:5225, ack 1461, win 501, options [nop,nop,TS val 4167133987 ecr 1696384893], length 1408: HTTP
+16:30:20.043241 IP6 localhost.http > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880: Flags [P.], seq 5225:6633, ack 1461, win 501, options [nop,nop,TS val 4167133987 ecr 1696384893], length 1408: HTTP
+16:30:20.043328 IP6 localhost.http > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880: Flags [.], seq 6633:8041, ack 1461, win 501, options [nop,nop,TS val 4167133987 ecr 1696384893], length 1408: HTTP
+16:30:20.043349 IP6 localhost.http > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880: Flags [P.], seq 8041:9449, ack 1461, win 501, options [nop,nop,TS val 4167133987 ecr 1696384893], length 1408: HTTP
+16:30:20.043488 IP6 localhost.http > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880: Flags [.], seq 9449:10857, ack 1461, win 501, options [nop,nop,TS val 4167133987 ecr 1696384893], length 1408: HTTP
+16:30:20.043512 IP6 localhost.http > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880: Flags [P.], seq 10857:12265, ack 1461, win 501, options [nop,nop,TS val 4167133987 ecr 1696384893], length 1408: HTTP
+16:30:20.043696 IP6 localhost.http > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880: Flags [P.], seq 12265:13568, ack 1461, win 501, options [nop,nop,TS val 4167133987 ecr 1696384893], length 1303: HTTP
+16:30:20.067849 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880 > localhost.http: Flags [.], ack 2409, win 69, options [nop,nop,TS val 1696384922 ecr 4167133987], length 0
+16:30:20.068435 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880 > localhost.http: Flags [.], ack 3817, win 72, options [nop,nop,TS val 1696384922 ecr 4167133987], length 0
+16:30:20.068533 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880 > localhost.http: Flags [.], ack 5225, win 75, options [nop,nop,TS val 1696384922 ecr 4167133987], length 0
+16:30:20.068612 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880 > localhost.http: Flags [.], ack 6633, win 78, options [nop,nop,TS val 1696384922 ecr 4167133987], length 0
+16:30:20.069790 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880 > localhost.http: Flags [.], ack 8041, win 80, options [nop,nop,TS val 1696384924 ecr 4167133987], length 0
+16:30:20.070025 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880 > localhost.http: Flags [.], ack 9449, win 83, options [nop,nop,TS val 1696384924 ecr 4167133987], length 0
+16:30:20.073035 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880 > localhost.http: Flags [.], ack 10857, win 86, options [nop,nop,TS val 1696384927 ecr 4167133987], length 0
+16:30:20.075903 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880 > localhost.http: Flags [.], ack 12265, win 89, options [nop,nop,TS val 1696384930 ecr 4167133987], length 0
+16:30:20.076055 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880 > localhost.http: Flags [.], ack 13568, win 91, options [nop,nop,TS val 1696384930 ecr 4167133987], length 0
+16:30:20.132986 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880 > localhost.http: Flags [P.], seq 1461:1872, ack 13568, win 91, options [nop,nop,TS val 1696384987 ecr 4167133987], length 411: HTTP: GET /de/tswnavbar.css HTTP/1.1
+16:30:20.133138 IP6 localhost.http > 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48880: Flags [.], ack 1872, win 500, options [nop,nop,TS val 4167134077 ecr 1696384987], length 0
+16:30:20.134558 IP6 2a00:20:15:d0bd:4eb0:f5b7:4c91:3392.48882 > localhost.http: Flags [P.], seq 1:409, ack 1, win 64, options [nop,nop,TS val 1696384987 ecr 4167133158], length 408: HTTP: GET /de/styles.css HTTP/1.1
+
+
+der Zugriffsversuch von cloudlab oder gast-pc innerhalb hom-wlan auf https wird nicht einmal registriert in tcpdump auf raspi, bloß von außerhalb = handy.
+
+
+vom Handy innerhalb WLAN:
+6:38:54.269028 IP6 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3.53520 > localhost.https: Flags [S], seq 564779901, win 65535, options [mss 1440,sackOK,TS val 733941717 ecr 0,nop,wscale 8], length 0
+16:38:54.269316 IP6 localhost > 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3: ICMP6, destination unreachable,  unreachable prohibited localhost, length 88
+16:38:54.269384 IP6 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3.53522 > localhost.https: Flags [S], seq 488438024, win 65535, options [mss 1440,sackOK,TS val 733941717 ecr 0,nop,wscale 8], length 0
+16:38:54.269575 IP6 localhost > 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3: ICMP6, destination unreachable,  unreachable prohibited localhost, length 88
+16:38:54.272136 IP6 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3.54242 > localhost.http: Flags [F.], seq 1, ack 1, win 338, options [nop,nop,TS val 733941719 ecr 1660516425], length 0
+16:38:54.272358 IP6 localhost.http > 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3.54242: Flags [.], ack 2, win 503, options [nop,nop,TS val 1660516567 ecr 733941719], length 0
+16:38:54.355948 IP6 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3.53528 > localhost.https: Flags [S], seq 3574990584, win 65535, options [mss 1440,sackOK,TS val 733941740 ecr 0,nop,wscale 8], length 0
+16:38:54.356172 IP6 localhost > 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3: ICMP6, destination unreachable,  unreachable prohibited localhost, length 88
+16:38:54.359377 IP6 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3.53530 > localhost.https: Flags [S], seq 4018574734, win 65535, options [mss 1440,sackOK,TS val 733941741 ecr 0,nop,wscale 8], length 0
+16:38:54.359544 IP6 localhost > 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3: ICMP6, destination unreachable,  unreachable prohibited localhost, length 88
+
+Handy innerhalb wlan normal http:
+16:40:57.125750 IP6 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3.54294 > localhost.http: Flags [S], seq 4028626768, win 65535, options [mss 1440,sackOK,TS val 733972431 ecr 0,nop,wscale 8], length 0
+16:40:57.126095 IP6 localhost.http > 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3.54294: Flags [S.], seq 2120713599, ack 4028626769, win 64260, options [mss 1440,sackOK,TS val 1660639421 ecr 733972431,nop,wscale 7], length 0
+16:40:57.126162 IP6 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3.54296 > localhost.http: Flags [S], seq 1853523870, win 65535, options [mss 1440,sackOK,TS val 733972431 ecr 0,nop,wscale 8], length 0
+16:40:57.126323 IP6 localhost.http > 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3.54296: Flags [S.], seq 3862429232, ack 1853523871, win 64260, options [mss 1440,sackOK,TS val 1660639421 ecr 733972431,nop,wscale 7], length 0
+16:40:57.127152 IP localhost.38328 > compalhub.home.domain: 49686+ PTR? 3.e.4.3.b.a.5.4.7.5.f.b.e.2.9.f.0.8.b.2.2.1.3.5.1.7.0.8.2.0.a.2.ip6.arpa. (90)
+16:40:57.128537 IP6 compalhub.home > localhost: ICMP6, redirect, 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3 to 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3, length 136
+16:40:57.129913 IP6 compalhub.home > localhost: ICMP6, redirect, 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3 to 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3, length 136
+16:40:57.132119 IP6 2a02:8071:5312:2b80:f92e:bf57:45ab:34e3.54294 > localhost.http: Flags [.], ack 1, win 338, options [nop,nop,TS val 733972435 ecr 1660639421], length 0
+
+
+---> komischerweise wird mir ping auch nicht angezeigt auf server. und wenn ich www.dorlan.de pinge, gibt es antwort obwohl raspi aus ist.   Erstmal netzwerk klären, vermutlich liegt eher dort der
+fehler als ssl
+( http anzeigen von dorlan.de könnte cache sein ?!)
+
+wenn Router neugestartet wird, wird IPv6 adresse von raspi neu vergeben, darum klappt dann firewall nicht mehr. 
+nachdem alles wieder neu gestartetwurde und IPv6 mit http klappt, wollte ich https versuchen, aber chrome gibt mir "ERR_NETWORK_ACCESS_DENIED" aus.
+
+
+
+CentOS: Firewall flush all rules: [root@localhost ~]# iptables -F
+[root@localhost logs]# systemctl stop firewalld
+versuchter zugriff über Handy: 
+10:52:52.668545 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.32976 > localhost.https: Flags [S], seq 2530500338, win 65535, options [mss 1420,sackOK,TS val 800907152 ecr 0,nop,wscale 8], length 0
+10:52:52.668868 IP6 localhost > 2a00:20:59:b9b4:6029:7d33:3885:fa5e: ICMP6, destination unreachable,  unreachable prohibited localhost, length 88
+10:52:52.672508 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.32974 > localhost.https: Flags [S], seq 964495949, win 65535, options [mss 1420,sackOK,TS val 800907152 ecr 0,nop,wscale 8], length 0
+10:52:52.672727 IP6 localhost > 2a00:20:59:b9b4:6029:7d33:3885:fa5e: ICMP6, destination unreachable,  unreachable prohibited localhost, length 88
+10:52:57.511851 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.32980 > localhost.https: Flags [S], seq 1566841008, win 65535, options [mss 1420,sackOK,TS val 800908363 ecr 0,nop,wscale 8], length 0
+10:52:57.512203 IP6 localhost > 2a00:20:59:b9b4:6029:7d33:3885:fa5e: ICMP6, destination unreachable,  unreachable prohibited localhost, length 88
+10:52:57.549770 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.32982 > localhost.https: Flags [S], seq 3441638053, win 65535, options [mss 1420,sackOK,TS val 800908371 ecr 0,nop,wscale 8], length 0
+10:52:57.550025 IP6 localhost > 2a00:20:59:b9b4:6029:7d33:3885:fa5e: ICMP6, destination unreachable,  unreachable prohibited localhost, length 88
+
+nach ausschalten von firewalld auf root-server scheint https über chrome möglich, aber ich muss noch Eintrag auf ionos ändern, weil zertifikat mit Dorlan.de verknüpft ist.
+nach ausschalten von firewalld konnte ich auf https zugreifen, jedoch mit Warnung weil IPv6 geändert ist nach Router-Neutsart. Bei Ionos AAAA_record anpassen und nochmal versuchen!
+	( 2a02:8071:5312:3280:e435:38d2:366:acdd/64) 
+	
+	
+mit https://[2a02:8071:5312:3280:e435:38d2:366:acdd] klappt es oder mit https://www.dorlan.de  :-)
+
+11:10:55.337216 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33446 > localhost.https: Flags [S], seq 2718970621, win 65535, options [mss 1420,sackOK,TS val 2506541166 ecr 0,nop,wscale 10], length 0
+11:10:55.337378 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33446: Flags [S.], seq 1254434964, ack 2718970622, win 64260, options [mss 1440,sackOK,TS val 3191525162 ecr 2506541166,nop,wscale 7], length 0
+11:10:55.367951 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450 > localhost.https: Flags [S], seq 587617489, win 65535, options [mss 1420,sackOK,TS val 2506541201 ecr 0,nop,wscale 10], length 0
+11:10:55.368107 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450: Flags [S.], seq 2626323684, ack 587617490, win 64260, options [mss 1440,sackOK,TS val 3191525193 ecr 2506541201,nop,wscale 7], length 0
+11:10:55.369204 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33446 > localhost.https: Flags [.], ack 1, win 64, options [nop,nop,TS val 2506541200 ecr 3191525162], length 0
+11:10:55.369880 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33446 > localhost.https: Flags [P.], seq 1:518, ack 1, win 64, options [nop,nop,TS val 2506541200 ecr 3191525162], length 517
+11:10:55.370011 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33446: Flags [.], ack 518, win 500, options [nop,nop,TS val 3191525195 ecr 2506541200], length 0
+11:10:55.400049 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450 > localhost.https: Flags [.], ack 1, win 64, options [nop,nop,TS val 2506541234 ecr 3191525193], length 0
+11:10:55.400787 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450 > localhost.https: Flags [P.], seq 1:518, ack 1, win 64, options [nop,nop,TS val 2506541235 ecr 3191525193], length 517
+11:10:55.400948 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450: Flags [.], ack 518, win 500, options [nop,nop,TS val 3191525226 ecr 2506541235], length 0
+11:10:55.436248 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33446: Flags [.], seq 1:1409, ack 518, win 501, options [nop,nop,TS val 3191525261 ecr 2506541200], length 1408
+11:10:55.436305 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33446: Flags [P.], seq 1409:2817, ack 518, win 501, options [nop,nop,TS val 3191525261 ecr 2506541200], length 1408
+11:10:55.436480 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33446: Flags [P.], seq 2817:3160, ack 518, win 501, options [nop,nop,TS val 3191525261 ecr 2506541200], length 343
+11:10:55.463735 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450: Flags [.], seq 1:1409, ack 518, win 501, options [nop,nop,TS val 3191525289 ecr 2506541235], length 1408
+11:10:55.463777 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450: Flags [P.], seq 1409:2817, ack 518, win 501, options [nop,nop,TS val 3191525289 ecr 2506541235], length 1408
+11:10:55.463918 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450: Flags [P.], seq 2817:3160, ack 518, win 501, options [nop,nop,TS val 3191525289 ecr 2506541235], length 343
+11:10:55.493789 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33446 > localhost.https: Flags [.], ack 1409, win 67, options [nop,nop,TS val 2506541325 ecr 3191525261], length 0
+11:10:55.493872 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33446 > localhost.https: Flags [.], ack 2817, win 70, options [nop,nop,TS val 2506541326 ecr 3191525261], length 0
+11:10:55.493900 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33446 > localhost.https: Flags [.], ack 3160, win 73, options [nop,nop,TS val 2506541326 ecr 3191525261], length 0
+11:10:55.499776 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450 > localhost.https: Flags [.], ack 1409, win 67, options [nop,nop,TS val 2506541334 ecr 3191525289], length 0
+11:10:55.499815 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450 > localhost.https: Flags [.], ack 2817, win 70, options [nop,nop,TS val 2506541334 ecr 3191525289], length 0
+11:10:55.499841 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450 > localhost.https: Flags [.], ack 3160, win 73, options [nop,nop,TS val 2506541336 ecr 3191525289], length 0
+11:10:55.536336 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33446 > localhost.https: Flags [P.], seq 518:525, ack 3160, win 73, options [nop,nop,TS val 2506541370 ecr 3191525261], length 7
+11:10:55.536374 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33446: Flags [.], ack 525, win 501, options [nop,nop,TS val 3191525361 ecr 2506541370], length 0
+11:10:55.537065 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33446: Flags [F.], seq 3160, ack 525, win 501, options [nop,nop,TS val 3191525362 ecr 2506541370], length 0
+11:10:55.542316 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450 > localhost.https: Flags [P.], seq 518:525, ack 3160, win 73, options [nop,nop,TS val 2506541379 ecr 3191525289], length 7
+11:10:55.542366 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450: Flags [.], ack 525, win 501, options [nop,nop,TS val 3191525367 ecr 2506541379], length 0
+11:10:55.543199 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450: Flags [F.], seq 3160, ack 525, win 501, options [nop,nop,TS val 3191525368 ecr 2506541379], length 0
+11:10:55.557244 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33452 > localhost.https: Flags [S], seq 4112705556, win 65535, options [mss 1420,sackOK,TS val 2506541388 ecr 0,nop,wscale 10], length 0
+11:10:55.557355 IP6 localhost.https > 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33452: Flags [S.], seq 1838429634, ack 4112705557, win 64260, options [mss 1440,sackOK,TS val 3191525382 ecr 2506541388,nop,wscale 7], length 0
+11:10:55.563129 IP6 2a00:20:59:b9b4:6029:7d33:3885:fa5e.33450 > localhost.https: Flags [.], ack 3161, win 73, options [nop,nop,TS val 2506541399 ecr 3191525368], length 0
+
+
+next: router ipv6-Firewall so einstellen, dass nicht alles durchgelassen wird. Evtl falls möglich feste IPv6-adress für RaspberryPi einrichten ?!
+
+Website läuft, nun Submit-Button einfügen und search-option.
+---> 1.) e-mail-Adresse prüfen und einrichten:  admin@dorlan.de   unter thunderbird eingerichtet: admin@dorlan.de - xDeu..._0..
+     2.) submit-Button koppeln
+     	--->
+     	
+     		https://paperform.co/blog/html-contact-form/   genau so übernommen aber als antwort kommt: 501 Not Implemented
+   
+   mit mini_httpd logging:  		
+     		127.0.0.1 - - [13/Apr/2023:16:17:49 +0200] "GET / HTTP/1.1" 200 1170 "" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/111.0"
+127.0.0.1 - - [13/Apr/2023:16:17:49 +0200] "GET /favicon.ico HTTP/1.1" 404 - "http://localhost/" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/111.0"
+127.0.0.1 - - [13/Apr/2023:16:17:57 +0200] "POST /submit.php HTTP/1.1" 501 - "http://localhost/" "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/111.0
+     	
+--->
+Error 501 Not Implemented refers to the methods used in HTTP (HyperText Transfer Protocol) communication. When the Error 501 code is returned, it means that the method used to fulfill the request does not work or was not found on the server.
+	test aus submit-test heraus: php -S localhost:8000	-	dann in Browser eingeben und absenden
+
+
+	---> [Thu Apr 13 16:29:04 2023] PHP Parse error:  syntax error, unexpected 're' (T_STRING), expecting ')' in /home/cloud/Desktop/website/dorlan/submit-test/submit.php on line 23
+[Thu Apr 13 16:29:04 2023] 127.0.0.1:56344 [500]: GET /submit.php - syntax error, unexpected 're' (T_STRING), expecting ')' in /home/cloud/Desktop/website/dorlan/submit-test/submit.php on line 23
+	---> tippfehler beseitigt in php-File, nun folgender Fehler:
+			[Thu Apr 13 16:31:42 2023] 127.0.0.1:56550 Accepted
+				sh: 1: /usr/sbin/sendmail: not found	---> sudo apt-get install postfix
+					
+				neuer Fehler: sendmail: fatal: open /etc/postfix/main.cf: No such file or directory
+				how to setup postfix: https://docs.rackspace.com/support/how-to/basic-settings-in-the-postfix-maincf-file/
+					https://www.postfix.org/BASIC_CONFIGURATION_README.html
+				
+				neuer Fehler:  [Thu Apr 13 16:57:59 2023] 127.0.0.1:54744 Accepted
+					postdrop: warning: unable to look up public/pickup: No such file or directory
+
+				zum Verständnis:  wer auf dorlan.de surft, nutzt root-srever. Um eine Nachricht senden zu können, muss passender E-Mail-Programm (postfix) Eingaben in E-Mails 
+				umwandeln. Darum nächstes Mal hostname, absender, IP usw. einstellen in postfix!
+				
+E-Mail Abfrage:  https://mail.ionos.de/?utm_rid=d99f252e-65a6-40ff-bf46-f28669230f74
+
+
+reminder für neuen start-up von raspi:	1.) check dass firewall aus ist ([root@localhost ~]# systemctl status firewalld
+								● firewalld.service - firewalld - dynamic firewall daemon
+								   Loaded: loaded (/usr/lib/systemd/system/firewalld.service; enabled; vendor preset: enabled)
+								   Active: inactive (dead) since Do 2023-04-13 10:55:05 CEST; 6h ago
+						2.) check IPv6-Adress auf router und raspi
+						3.) check ob httpd läuft
+								   
+
+		php gibt mir beim Ausführen nun keinen Fehler mehr aus. Aber die E-Mail kommt nicht an.
+		
+		--->  Apr 14 12:39:54 Cloud-Lab postfix/smtp[8225]: 57FFA17646ED: to=<admin@dorlan.de>, relay=mx00.ionos.de[212.227.15.41]:25, delay=377, delays=377/0/0.15/0, dsn=4.0.0, status=deferred (host mx00.ionos.de[212.227.15.41] refused to talk to me: 554-kundenserver.de (mxeue010) Nemesis ESMTP Service not available 554-No SMTP service 554-IP address is block listed. 554 For explanation visit https://postmaster.1und1.de/de/case?c=bl&i=ip&v=37.201.194.112)
+
+
+ angezeigter Fehler:
+ "554 Nemesis ESMTP Service not available No SMTP service IP address is block listed.
+
+Um den Empfang von E-Mail Spam zu reduzieren, nutzen wir unterschiedliche Blocklisten.
+
+Die IP-Adresse des versendenden Servers wurde auf einer Spamhaus.org Blocklist geführt. "	
+---> https://check.spamhaus.org/listed/?searchterm=37.201.194.112    Zusammenfassung: vodafone bzw. dessen Kunden sind automatisch auf Spamlisten, wenn man nicht die offiziellen E-Mail_Server nutzt, um Spam zu verhindern. Kann man aber abschalten lassen mit "I am running my own mail server"
+	---> erstmal testen ob das auch für Raspberry gilt?!
+	----> bessere IDee: alle eingaben uaf lokalem Textfile speichern
+	
+	
+	
+index.html und submit_text.php  passt, eingaben werden nun abgespeichert.  als nächstes dieses Feature einbauen in meine index-Files.
+
+Next: search-google generator einbauen.
+Am sinnnvollsten vermutlicxh kompletten ordner von raspberryPi als zip rüberkopieren
+
+---> wenn ich mini_httpd starte, läuft php-File nicht. Evtl muss ich in httpd-config das php extra freischalten: https://stackoverflow.com/questions/5121495/php-code-is-not-being-executed-but-the-code-shows-in-the-browser-source-code	
+
+" 
+php7 :
+sudo a2enmod proxy_fcgi setenvif
+sudo a2enconf php7.0-fpm
+sudo service apache2 restart
+"
