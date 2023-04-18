@@ -4,8 +4,6 @@ $search= $_POST['searchwords'];
 
 $searchoriginal= $search;
 
-$search= strtolower($search);		//make all searchwords lower case
-
 $search= trim($search);			//delete trailing whitespaces
 
 $search= explode(" ", $search);		//separate input string into own elements
@@ -17,46 +15,46 @@ echo $searchoriginal."\n";
 echo "<br><br>";
 
 //search is at the end of processing an array hence I must iterate over it
-echo "Processed searchwords: "; 
-foreach ($search as $value) {
-	$processed_searchwd = $value;
-    echo $processed_searchwd, "\n";
+foreach ($search as $key=>$value) {
+	$processed_searchwd[$key] = $value;
+    echo("foreach iteration: key = $key; value = $value ---> processed_searchwd[$key] = $processed_searchwd[$key] <br>");
 }
 
+	//echo("processed_searchwd[0] = $processed_searchwd[0] ? <br>");
+
+/*
 echo "<br><br>";
 echo "Nr. of searchwords: "; 
 echo $countsearchterms."\n";
 echo "<br><br>";
+*/
 
-echo "root search directory: ";
-echo getcwd()."\n";
-echo "<br><br>";	
+switch($countsearchterms)
+{
+	case 1:
+	$searchstring = "grep -r $processed_searchwd[0] | grep -v \"index.html\" | grep -v \"<h\"";
+	break;
 
-//$searchstring = 'grep -r $processed_searchwd | grep -v \"index.html\" | grep -v \"<h\"';
-$searchstring = "grep -r $processed_searchwd | grep -v index.html | grep -v <h";	// ---> klappt noch nicht, Rest passt!
+	case 2:
+	$searchstring = "grep -r $processed_searchwd[0] | grep -r $processed_searchwd[1] | grep -v \"index.html\" | grep -v \"<h\"";
+}
 
-//$shelltest=shell_exec('grep -r $procesed_searchwd | grep -v "index.html" | grep -v "<h"');
+
 $shelltest=shell_exec($searchstring);
-
-echo $shelltest;
 
 $expl_shellout = explode("\n", $shelltest);	//die Ausgabe in Zeilen unterteilen
 
 $line_count = count($expl_shellout)-1;
 
-echo "exploded Shelltest gives $line_count results: <br>";
 foreach ($expl_shellout as $value) {
 	
 	$position = explode(":", $value);
 	$linkresult= $position[0];
 	$linkcontent = $position[1];
 
-	//echo "Link zum Ergebnis: $linkresult <br>";
-	//echo "Link zum Inhalt: $linkcontent <br>";
-
 	echo ("<a href='$linkresult'>$linkcontent</a>"."<br>");
 }
-
+ 
 
 /*
 if ($countsearchterms == 1)
