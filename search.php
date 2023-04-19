@@ -22,13 +22,6 @@ foreach ($search as $key=>$value) {
 
 if ($processed_searchwd[0] == NULL) $countsearchterms = 0;
 
-/*
-echo "<br><br>";
-echo "Nr. of searchwords: "; 
-echo $countsearchterms."\n";
-echo "<br><br>";
-*/
-
 switch($countsearchterms)
 {
 	case 1:
@@ -60,17 +53,21 @@ $expl_shellout = explode("\n", $shelltest);	//die Ausgabe in Zeilen unterteilen
 
 $line_count = count($expl_shellout)-1;
 
-if ($countsearchterms == 1)
+//echo("The number of lines is: $line_count <br>");
+
+if ($line_count <= 1)
 {
-	echo("expl_shellout:<br>$expl_shellout <br>");
-	$position = explode(":", $expl_shellout, 2);	//PHP Warning:  explode() expects parameter 2 to be string, array given in /var/www/dorlan/search.php on line 66
 
-	echo("position:<br>$position <br>");
+	$expl_shellout = implode($expl_shellout);
+	$position = explode(":", $expl_shellout, 2);	
 	$linkresult= $position[0];
-	$linkcontent = $position[1];
+	if( $position[1] == NULL){
+		echo "Invalid search... redirecting to start page.";
+		header( "Refresh:5; url=de/index.html", true, 303);
+    		exit;
+	}				
+	$linkcontent = substr($position[1],0,250).'...'; 	//limit output to 250 chars
 	
-	echo("$linkresult --- $linkcontent <br>");
-
 	echo ("<a href='$linkresult'>$linkcontent</a> <br><br>");
 }
 else
@@ -79,58 +76,19 @@ else
 		
 		$position = explode(":", $value, 2);
 		$linkresult= $position[0];
-		$linkcontent = $position[1];
+		if( $position[1] == NULL) continue;			//break current iteration and make next iteration
+		$linkcontent = substr($position[1],0,250).'...'; 	//limit output to 250 chars
 		
 		//doppelte ergebnisse herausfiltern ( bei grep werden sie untereinander angezeigt, also muss man nur erstes mit nächstem vergleichen)
-		if ( $tmp_linkresult != $linkresult) echo ("<a href='$linkresult'>$linkcontent</a> <br><br>");
+		if ( $tmp_linkresult != $linkresult && !str_contains($linkcontent,"<img src=") ) 
+			echo ("<a href='$linkresult'>$linkcontent</a> <br><br>");
+		
 		$tmp_linkresult = $linkresult;
 	}
 }
- 
 
-/*
-if ($countsearchterms == 1)
-{
-
-	
-
-    while (($file = readdir($open)) !== false){
-	$fileoriginal= $file;
-	$file= strtolower($file);
-	$file= str_replace("-", " ", $file);
-	$file= str_replace("_", " ", $file);
-	$position= strpos("$file", ".");
-	$file= substr($file, 0, $position);
-	
-      if (strpos("$file",  "$search[0]") !== false)
-	{
-	$file= ucwords($file);
-	$array[] += "$file";
-	 echo "<a href='http://www.learningaboutelectronics.com/$directory" . "$fileoriginal'>$file</a>"."<br>";
-}
- 
-	
-    }
-}
-
-
-Pseudo-Code:
-1.) immer komplette Seite durchsuchen (später änderbar je nach Kategorie)
-	---> grep -r /Dorlan/.... 
-
-2.) Ergebnisse mit index.html in der directory löschen = grep -r Arbeitsleben | grep -v "index.html"
-
-
-3.) bei grep -r ist die Ausgabe zeilenweise, also die Ausgabe unterteilen in Zeilen
-
-4.) groß-/kleinschreibung ignorieren
-
-5.) doppelte Ergebnisse herausfiltern
-
-6.) bloß bei dem ersten doppelpunkt array teilen  (explode, implode) ---> explode(' ', $your_string, 2)
- 
-*/
       
 ?>
+
 
 
