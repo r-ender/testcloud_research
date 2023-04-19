@@ -2,9 +2,9 @@
 
 $search= $_POST['searchwords'];
 
-$searchoriginal= $search;
+$search= trim($search);			//delete trailing whitespaces - protection against xss
 
-$search= trim($search);			//delete trailing whitespaces
+$searchoriginal= $search;
 
 $search= explode(" ", $search);		//separate input string into own elements
 
