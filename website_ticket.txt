@@ -1022,9 +1022,47 @@ Am sinnnvollsten vermutlicxh kompletten ordner von raspberryPi als zip rüberkop
 
 ---> wenn ich mini_httpd starte, läuft php-File nicht. Evtl muss ich in httpd-config das php extra freischalten: https://stackoverflow.com/questions/5121495/php-code-is-not-being-executed-but-the-code-shows-in-the-browser-source-code	
 
-" 
+https://linuxconfig.org/linux-apache-not-executing-php-files-solution
 php7 :
 sudo a2enmod proxy_fcgi setenvif
-sudo a2enconf php7.0-fpm
+sudo a2enconf php7.4-fpm
 sudo service apache2 restart
 "
+
+sudo apt-get install libapache2-mod-php7.4
+
+
+
+php hat mit cgi zu tun:
+Sandardmäßig wird PHP als CLI und CGI Programm kompiliert, wobei letzteres für die CGI-Verarbeitung verwendet werden kann. Sollte Ihr Webserver die Möglichkeit der Einbindung als Modul besitzen, dann sollten Sie grundsätzlich diese Option aus Leistungsgründen bevorzugen. CGI Versionen bieten jedoch den Vorteil verschiedene PHP-Seiten unter unterschiedlichen Benutzerkennungen auszuführen. 
+
+---> klappt mit mini_httpd nicht. Habe apache2 isntalliert, jetzt noch einstellen und dann starten (https://www.digitalocean.com/community/tutorials/how-to-install-the-apache-web-server-on-ubuntu-20-04)
+
+mit apache2 und einbindung php läuft nun php, aber es kommt der Fehler: Unable to open file - permission denied unter cloud@Cloud-Lab:/var/log/apache2$ cat error.log 
+	---> problem gelöst mit "sudo chmod 666 /var/www/dorlan/submitted.txt"
+	
+	next: normales index-file anpassen und migrieren auf /var/www/dorlan
+
+aufgerufen von var/ww/dorlan/de/index.html  klappt contact formular eingabe!  bei redirect einfach auf deutsche home-INdex-Seite leiten ! 
+	---> finales Kontaktformular ist contactform.php,  bedeutet alles entsprechend abändern um auf contactform.php zu landen.
+	--->> vorher checken wegen seitensuchmashcine
+		es gibt google-search console, das ist aber nicht das tool zum Durchsuchen meiner Seite sondern statistiken von google (später relevant)
+		
+( google-accoutn läuft unter admin@dorlan.de mit gleichem Username)
+
+suchen auch unter var/ww/dorlan/de/index.html auf search.php
+
+( Uncaught Error: Call to undefined function str_contains() ---> str_contains erst ab Version php8, aber apache2 nutzt 7.4 ) - use workaround: strpos($haystack, $needle)
+
+next:   
+	- html-Seiten an gästebuch und such-Funktion anpassen --> Vorgehen: erstmal deutsche Seite fertig machen
+									--> erste Ebene dorlan --> check
+									--> 2.) de  3.)finanzen - immo - leben - reisen - technik --> check
+									--> Ordner Unterebenen. zB 2022/apr_xx --> finanzen, check.
+														    immo check
+														    leben
+														    reisen
+														    technik
+									
+	- apache server härten
+
