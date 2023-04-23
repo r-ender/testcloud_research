@@ -991,9 +991,11 @@ E-Mail Abfrage:  https://mail.ionos.de/?utm_rid=d99f252e-65a6-40ff-bf46-f2866923
 
 
 reminder für neuen start-up von raspi:	1.) check dass firewall aus ist ([root@localhost ~]# systemctl status firewalld
-								● firewalld.service - firewalld - dynamic firewall daemon
-								   Loaded: loaded (/usr/lib/systemd/system/firewalld.service; enabled; vendor preset: enabled)
-								   Active: inactive (dead) since Do 2023-04-13 10:55:05 CEST; 6h ago
+								oder besser https enablen:
+									[root@localhost www]# firewall-cmd --permanent --add-service=http
+									[root@localhost www]# firewall-cmd --permanent --add-service=https
+									[root@localhost www]# firewall-cmd --reload
+
 						2.) check IPv6-Adress auf router und raspi
 						3.) check ob httpd läuft
 								   
@@ -1050,19 +1052,91 @@ aufgerufen von var/ww/dorlan/de/index.html  klappt contact formular eingabe!  be
 		
 ( google-accoutn läuft unter admin@dorlan.de mit gleichem Username)
 
-suchen auch unter var/ww/dorlan/de/index.html auf search.php
+suchen auch unter var/www/dorlan/de/index.html auf search.php
 
 ( Uncaught Error: Call to undefined function str_contains() ---> str_contains erst ab Version php8, aber apache2 nutzt 7.4 ) - use workaround: strpos($haystack, $needle)
 
-next:   
-	- html-Seiten an gästebuch und such-Funktion anpassen --> Vorgehen: erstmal deutsche Seite fertig machen
-									--> erste Ebene dorlan --> check
-									--> 2.) de  3.)finanzen - immo - leben - reisen - technik --> check
-									--> Ordner Unterebenen. zB 2022/apr_xx --> finanzen, check.
-														    immo check
-														    leben
-														    reisen
-														    technik
-									
+next:   									
 	- apache server härten
+	- seite an verschiedene pixel-größen anpassen / referenzeiren auf ein einziges tswvnavbar etc. 
+	
+	
+	
+- raspi-test mit aktueller Seite	
+	---> php-Wiedergabe klappt wohl nicht: php nicht installiert 
+	system:
+		NAME="CentOS Linux"
+		VERSION="7 (AltArch)"
+		ID="centos"
+		ID_LIKE="rhel fedora"
+		
+		[root@localhost home]# httpd -version
+		Server version: Apache/2.4.6 (CentOS)
+		Server built:   Apr  5 2023 17:18:56
 
+
+	yum repolist fehler: Cannot retrieve metalink for repository: epel/armhfp.  ---> yum --disablerepo=epel -y update  ca-certificates
+				Cannot find a valid baseurl for repo: webtatic/armhfp
+				( I edited the file /etc/yum.repos.d/CentOS-Base.repo /webtatic and uncommented baseurl )
+				
+				next try: erst alle heruntergeladenden gelöscht und yum update, dann neuer Versuch. 
+					(bei yum update: Disk Requirements:   At least 399MB more space needed on the / filesystem. )
+					
+	nach "yum install http://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm" taucht fehler auf: Cannot retrieve metalink for repository: epel/armhfp
+			
+	--> 
+		I solved this issue editing both /etc/yum.repos.d/epel.repo and /etc/yum.repos.d/epel-testing.repo files, commenting all entries starting with metalink=... and uncommenting all the entries starting with baseurl=...	
+		
+		next error:  Cannot find a valid baseurl for repo: webtatic/armhfp
+		
+			einfach:  yum install php
+			root@localhost yum.repos.d]# php -v
+				PHP 5.4.16 (cli) (built: Apr  1 2020 06:27:24) 
+				Copyright (c) 1997-2013 The PHP Group
+				Zend Engine v2.4.0, Copyright (c) 1998-2013 Zend Technologies
+			
+php läuft:  [root@localhost Dorlan]# php -S 192.168.0.32:4444   gleichzeitig in Url: http://192.168.0.32:4444/de/index.html
+php läfut noch nicht bei apache2 server, also einbinden:
+			https://www.php.net/manual/en/install.unix.apache2.php
+					( ./usr/share/doc/php-common-5.4.16/php.ini-development )
+					
+					[root@localhost httpd]# ls modules | grep php
+					libphp5.so
+					--> in httpd.conf : LoadModule php5_module modules/libphp5.so
+					
+			neuer Fehler: Apr 23 21:32:24 localhost httpd[1970]: [Sun Apr 23 21:32:24.107814 2023] [so:warn] [pid 1970] AH01574: module php5_module is already loaded, skipping
+					---> php bereits vorhanden in conf.modules.d/10-php.conf:  LoadModule php5_module modules/libphp5.so also unter conf/httpd.conf auskommentieren
+
+			--> neustart von apache-httpd und es klappt jetzt, auch mit nutzung von php
+			
+			--> contactform macht noch Probleme, wegen Pfad:  $myfile = fopen("/var/www/dorlan/submitted.txt")  besser ändern in /var/www/Dorlan/submitted.txt
+			
+			ssl-website erreichbar, aber bei handy display quer wird Mittelspalte abgehackt, scrollen geht beim Handy hoch und quer dann auch nicht mehr ?! 
+			
+			
+apache server härten:
+		in httpd.conf:  ServerSignature Off
+			         ServerTokens Prod
+				TraceEnable off
+				
+				[root@localhost httpd]# firewall-cmd --list-all
+				public (active)
+				  target: default
+				  icmp-block-inversion: no
+				  interfaces: eth0
+				  sources: 
+				  services: dhcpv6-client http https ssh
+				  ports: 22/tcp 4444/tcp
+
+---> ist gehärtet und am Laufen.
+
+next:  seite auf google registrieren ?!
+
+google-search console: verified. 
+			To stay verified, don't remove the DNS record. To avoid losing verification, you may want to add multiple verification methods from the Settings > Ownership verification
+			
+			
+bei lokalem website-test klappt hoch, aber querkannt nicht.
+	--> <div id="tswcontproper"> gibt höhe der Karten an, evtl tswcont ?!
+	
+	--> änderungen bei var/ww/dorland/de/styles.css haben irgendwie gar keinen Effekt, bloß änderungen bei index.html ?!
