@@ -1094,6 +1094,20 @@ next:
 				PHP 5.4.16 (cli) (built: Apr  1 2020 06:27:24) 
 				Copyright (c) 1997-2013 The PHP Group
 				Zend Engine v2.4.0, Copyright (c) 1998-2013 Zend Technologies
+				
+		Hardware	: BCM2835
+		Model		: Raspberry Pi 3 Model B Rev 1.2
+		
+		
+		[root@localhost logs]# free -m
+			      total        used        free      shared  buff/cache   available
+		Mem:            855          72         640          11         142         756
+		Swap:           487           0         487
+
+	
+		[root@localhost logs]# cat /proc/stat 
+		cpu  7397 47 12377 22402488 2417 0 258 0 0 0	
+								-->Auslastung scheint okay zu sein
 			
 php läuft:  [root@localhost Dorlan]# php -S 192.168.0.32:4444   gleichzeitig in Url: http://192.168.0.32:4444/de/index.html
 php läfut noch nicht bei apache2 server, also einbinden:
@@ -1139,4 +1153,44 @@ google-search console: verified.
 bei lokalem website-test klappt hoch, aber querkannt nicht.
 	--> <div id="tswcontproper"> gibt höhe der Karten an, evtl tswcont ?!
 	
-	--> änderungen bei var/ww/dorland/de/styles.css haben irgendwie gar keinen Effekt, bloß änderungen bei index.html ?!
+	--> änderungen bei var/ww/dorlan/de/styles.css haben irgendwie gar keinen Effekt, bloß änderungen bei index.html ?!
+	
+Änderung: alle html abändern, damit sie auf dorlan/de/styles.css zeigen	--> testlauf zuerst mit finanzen beginnen 	
+
+< Tipp: css stands for cascading style sheet meaning the styles that come at the bottom will overwrite (!) the styles that come at the top of the file >
+
+die Seite wird beim aktualisieren nicht neu geladen, also muss ich browserdaten löschen(Dateien und Bilder) um neuzuladen
+	last:	---> zuletzt verändert dorlan/de/styles.css search-form portrait handybildschirm
+	
+	( XML-Sitemaps machen es Google und anderen Suchmaschinen noch leichter, alle Inhalte Ihres Webauftritts vollständig zu erfassen. Eine Sitemap ist ein Verzeichnis sämtlicher Unterseiten einer Domain. Eine Sitemap in der Skriptsprache XML ist für Suchmaschinen leicht lesbar, sodass sie jede noch so kleine und versteckte Unterseite finden. )
+	
+	setze pixelsize für web-development:  Firefox From the keyboard: Press Ctrl + Shift + M
+	
+	aus https://mediag.com/blog/popular-screen-resolutions-designing-for-all/	: Samsung Galaxy S9 = 	(resolution 1440 x 2960) bzw. (360 x 740 viewport px)
+	
+		its resolution is about 1440 x 2960 Pixels with approximately 570 PPI pixel density. Samsung Galaxy S9 has viewport size 360 x 740 Pixels
+		
+		CSS pixel - This is an abstract unit we use in CSS declarations. Taken alone, 1 CSS pixel does not have an objective size. Instead, how 1 CSS pixel renders on the webpage is
+		determined by the viewport.
+		Viewport - This determines the pixel density of the page. A viewport width of, for example, 750px, would mean that 750 CSS pixels would span the width of the screen (with a 1:1 scale).
+
+--> Info: seite als private browser aufrufen, weil das keinen cache speichert, somit änderungen sofort sichtbar werden
+
+bei finanzen/index.html habe ich timeline-height auf 100vh angepasst, weshalb hochkant suchformular bisschen überragt. aber besser das so lösen, weil es querkant besser aussieht, und die anderen Seiten daran anpassen.
+
+---> hochkant finanzen/index anpassen!
+
+(zugriff: ohne apache2 arbeiten, einfach html file so öffnen! finanzen/index.html zeigt auf dorland/de/styles.css  
+				--> außer den finanzen/index-buttons passt das layout soweit 
+				info: ich habe für ifnanzen/index.html tswnavbar in styles.css übernommen und tswnavbar.css gelöscht
+				
+				bei buttons wieterhin das Problem, dass die Schrift aus den Buttons fällt, falls zu nah am rechten Rand
+						--> versauch. alle divs in hochkant auf margin=0 padding=0 setzen ?! getestet, kein Effekt
+								--> versuchen ohne heigth and width sondern padding/margin --> klappt für pc-bildschirm
+								
+		problem nachstellbar bei Desktop, wenn ich div#tswothersidecol {margin-left: 250px;}  zu groß mache.
+	--> liegt an  id="tswcentrecombo">	--> wenn ich width erhöhe erscheint Text wieder (eigentlich ganze div unnötig, im Nachhinein rauswerfen aber schwierig)
+		
+		--->      finanzen-ordner ist fertig, als Mustervorlage verwenden für alle anderen Ordner
+
+
