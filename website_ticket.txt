@@ -1194,3 +1194,265 @@ bei finanzen/index.html habe ich timeline-height auf 100vh angepasst, weshalb ho
 		--->      finanzen-ordner ist fertig, als Mustervorlage verwenden für alle anderen Ordner
 
 
+obots.txt and htaccess files  necessary for google indexing ?!
+
+"Unreachable: robots.txt
+
+Before we crawled the pages of your site, we tried to check your robots.txt file to ensure we didn't crawl any pages that you had roboted out. However, your server returned a 5xx (unreachable) error when we tried to retrieve your robots.txt file. To make sure we didn't crawl any pages listed in that file, we postponed our crawl.
+
+Your hosting provider may be blocking Googlebot, or there may be a problem with the configuration of their firewall.
+
+Note: If the contents of the robots.txt file is different in your browser than what Google sees, work with your hosting company to remove any server rules that might show different robots.txt content to different user agents."
+
+--> https://www.ionos.com/digitalguide/hosting/technical-matters/index-management-with-the-robotstxt-file/
+
+---> A 5xx code occurs when a server does not support the functionality required to process a visitor’s request. Simply put, it means that there’s an error caused by the server.
+The error 500 and 503, which are usually the most common ones to appear, do not allow search engines from crawling the site.
+
+https://www.fandangoseo.com/seo-crawler/
+
+aus google sc:
+Time
+Apr 26, 2023, 6:52:41 PM
+Crawled as
+Googlebot desktop
+Crawl allowed?
+Yes
+Page fetch
+error
+Failed: Robots.txt unreachable
+
+---> wenn ich httpd-logs checke ist kein Fehlereintrag oder zugriff etc. für diese Zeit, Fehler beim router ?!
+	tcpdump zeigt, dass google meinen server nicht erreicht, also entweder fehler bei Router oder ionos
+	
+	test mit firewalld und router fw ausschalten --> klappt trotzdem nicht.
+	
+	https://support.google.com/webmasters/thread/22901174/google-refuses-to-crawl-ipv6-site?hl=en
+	
+	
+	http://dorlan.de erreichbar 2a06:4880:d000::e1 - - [26/Apr/2023:12:49:17 +0200] "GET / HTTP/1.1" 200 238 "-" "Mozilla/5.0 (compatible; InternetMeasurement/1.0; +https://internet-measurement.com/)"
+::1 - - [26/Apr/2023:19:13:13 +0200] "OPTIONS * HTTP/1.0" 200 - "-" "Apache/2.4.6 (CentOS) OpenSSL/1.0.2k-fips PHP/5.4.16 (internal dummy connection)"
+2001:41d0:701:1100::29c8 - - [26/Apr/2023:19:39:01 +0200] "GET / HTTP/1.0" 200 238 "http://ipv6-test.com/validate.php" "ipv6-test.com validator"
+2001:41d0:701:1100::29c8 - - [26/Apr/2023:19:40:47 +0200] "GET / HTTP/1.0" 200 238 "http://ipv6-test.com/validate.php" "ipv6-test.com validator"
+
+
+weitere Tests von unterschiedlichen Örtlichkeiten und WLANs durchführen, ob meine Seite erreichbar, danach evtl vodafone fragen
+fehler: [ssl:debug] [pid 1119] ssl_engine_pphrase.c(181): AH02199: SSL not enabled on vhost www.dorlan.de:80, skipping SSL setup
+
+[Wed Apr 26 23:57:55.181264 2023] [ssl:info] [pid 1119] AH02200: Loading certificate & private key of SSL-aware server 'www.dorlan.de:443'
+[Wed Apr 26 23:57:55.182082 2023] [ssl:debug] [pid 1119] ssl_engine_pphrase.c(506): AH02249: unencrypted RSA private key - pass phrase not required
+[Wed Apr 26 23:57:55.182867 2023] [ssl:info] [pid 1119] AH01914: Configuring server www.dorlan.de:443 for SSL protocol
+[Wed Apr 26 23:57:55.307897 2023] [ssl:debug] [pid 1119] ssl_engine_init.c(886): AH01904: Configuring server certificate chain (1 CA certificate)
+[Wed Apr 26 23:57:55.307983 2023] [ssl:debug] [pid 1119] ssl_engine_init.c(406): AH01893: Configuring TLS extension handling
+[Wed Apr 26 23:57:55.308015 2023] [ssl:debug] [pid 1119] ssl_engine_init.c(933): AH02232: Configuring RSA server certificate
+[Wed Apr 26 23:57:55.308390 2023] [ssl:debug] [pid 1119] ssl_util_ssl.c(508): AH02412: [www.dorlan.de:443] Cert matches for name 'www.dorlan.de' [subject: CN=*.dorlan.de / issuer: CN=Encryption Everywhere DV TLS CA - G2,OU=www.digicert.com,O=DigiCert Inc,C=US / serial: 074209505290BAE2C3F3A3D25B5FAB50 / notbefore: Apr  4 00:00:00 2023 GMT / notafter: Apr  3 23:59:59 2024 GMT]
+[Wed Apr 26 23:57:55.308424 2023] [ssl:debug] [pid 1119] ssl_engine_init.c(988): AH02236: Configuring RSA server private key
+
+
+ich kann dorlan.de auf handy mit samsung browser aufrufen aber auf heim-pc firefox oder chrome oder testsitzung sina nicht !!
+		----> hängt evtl mit ipv4/6 problematik zusammen, weil zugriff von ipv6-test und handy mit ipv6-adresse wurde erkannt.
+		
+
+Problem meinen Server von IPv4-only Netzen aus zu erreichen ?
+facts: wenn ich eine IPv6 adresse habe, so wie mein galaxy-handy, dann klappt der seitenaufruf. wenn ich aber nur eine ipv4-adresse habe ohne ipv6, klappt der aufruf nicht.
+
+--> vodafone stellt sich quer bei eazy vertrag Dual Stack freizuschalten --> https://steemit.com/deutsch/@gldhnchn/04-raspberry-pi-mit-ds-lite-aus-dem-internet-erreichbar-teil-2-ipv4
+
+
+---> Versuch über cloudflare-tunnel und http-proxy weil dann mein website-namen gleich bliebt (sonst datamate.org checken für ds lite beschreibung)
+	(cloudflare-tunnel: github anderspitman/awesome-tunneling //// https://www.youtube.com/watch?v=ey4u7OUAF3c 
+	
+	1.) cloudflare-account erstellen: done (same as admin@do....)
+	
+		Log in to the administrator account for your domain registrar
+Remove the following nameservers
+
+ns1037.ui-dns.biz
+
+ns1090.ui-dns.com
+
+ns1080.ui-dns.org
+
+ns1066.ui-dns.de
+
+
+Add Cloudflare's nameservers
+
+annabel.ns.cloudflare.com
+
+Click to copy
+
+dave.ns.cloudflare.com
+
+Click to copy
+
+--> änderung bei ionos abgeschlossen:
+Ihre personalisierten Nameserver werden übernommen
+
+    Bei Clouflare findest du außerdem noch die SSL/TLS für deine Website. Hier kannst du verschiedene Möglichkeiten einstellen:
+
+    Off: nicht zu empfehlen
+    Flexible: nur wenn dein Webserver auf dem Raspberry Pi noch kein SSL eingerichtet hat
+    Full: wenn du zwar SSL eingerichtet hast, jedoch mit selbst signierten Zertifikaten
+    Full strict: wenn du SSL korrekt eingerichtet hast mit Zertifikaten, die von einer CA herausgegeben sind (z.B. letsencrypt)
+    (Siehe auch hier)
+    Zur Einrichtung von SSL und nginx folgen noch Artikel.
+
+Glückwunsch! Dein Webserver auf dem Raspberry Pi ist nun unter example.ga erreichbar.
+
+bisher:     Typ
+    CNAME
+    Hostname
+    _domainconnect
+    Zeigt auf _domainconnect.ionos.com  /neu: www.dorlan.de
+    TTL
+
+neu:
+Vorschau
+_domainconnect.dorlan.de 3600 IN CNAME www.dorlan.de 
+
+----> klappt bisher noch nicht. die Anleitung seemit passt nicht auf meine Verhältnisse.
+
+nach Änderung der Nameserver bei IONOS erhalte ich für DNS folgendes:
+IONOS DNS-Einstellungen sind inaktiv wenn Sie einen personalisierten Nameserver verwenden. Sie müssen beim jeweiligen Provider die notwendigen DNS-Einstellungen vornehmen oder die Nameserver auf die IONOS Standardeinstellung zurücksetzen, um Ihre DNS-Records hier zu reaktivieren.	---> bei cloudflare meine IPv6 eintragen ?!
+
+erstmal alle steps bei cloudflare durcharbeiten und dann nochmal testen? weil anscheinend aktuell noch kein Zugang?!
+	---> https://pimylifeup.com/raspberry-pi-cloudflare-tunnel/
+	
+	
+	cloudflared installieren:
+	# This requires yum config-manager
+sudo yum install yum-utils
+
+# Add cloudflared.repo to config-manager
+sudo yum-config-manager --add-repo https://pkg.cloudflare.com/cloudflared-ascii.repo
+
+# install cloudflared
+yum install cloudflared
+
+---> manueller install klappt nicht wegen angebotener architecuture (kein armhf = armv7)
+	---> also:     wget https://github.com/cloudflare/cloudflared/releases/download/2023.4.2/cloudflared-linux-arm
+			mv cloudflared-linux-arm /usr/bin && chmod +x /usr/bin/cloudflared-linux-arm
+			mv cloudflared-linux-arm cloudflared 
+
+
+Zwischennotiz: mein Server ist mit der IPv6-Adresse immer noch erreichbar, also liegt es am Namenseintrag
+
+Idee: ionos hat mir IPv4-adresse zugewiesen (A-record) und ich habe IPv6-adresse ([2a02:8071:5312:3280:e435:38d2:366:acdd]), ich habe nur domain-eintrag gekauft.
+		Evtl doch am besten cloudflare zu testen ?!  Aber erstmal versuchen websit mit ipv6 aufzurufen dann tunnel bauen!
+		
+		erst: versuchen die websit so aufzurufen
+		
+	--> erst alles zurücksetzen auf ionos und dann nochmal neu versuchen
+		das zurücksetzen hat schonmal geklappt, jetzt direkt zu ionos tunnel aufbauen 
+
+
+( mein DS-LIte-FQDN: de-hue01a-cr01.aftr.umkbw.net )
+
+möglihcer Weg:
+ich habe folgende Lösung umgesetzt:
+- VPS bei IONOS gemietet.
+- Tailscale (= open-Source VPN) Subnet Router auf Raspberry Pi im LAN installiert
+- Tailscale Client auf dem VPS installiert
+- NGINX Reverse Proxy auf dem VPS eingerichtet
+
+
+WICHTIG: Mit einem vServer kannst du eine eigene IP-Adresse nutzen. Das hast du bei einem Webhosting leider nicht. 
+
+vServer anbieter:  https://www.delta-networks.de/root-server/
+vServer ionos: 18€ pro Jahr
+
+
+cloudflare:
+Proxied: Accelerates and protects traffic
+DNS resolution only: Bypasses Cloudflare
+
+ich habe diesmal auf DNS only gestellt.
+
+neuer Versuch:
+Remove the following nameservers
+
+ns1048.ui-dns.com
+
+ns1051.ui-dns.de
+
+ns1057.ui-dns.org
+
+ns1106.ui-dns.biz
+
+
+---> Seite ist nun wieterhin erreichbar
+
+wenn ich http://www.dorlan.de eingebe wird google auf ionos-defaultsite verwiesen  (tipp: es gibt einen mobile-friendly-test bei google)
+
+
+[root@localhost home]# cloudflared service install eyJhIjoiZjMwZjA5N2Q4MTRkNmViNjJkNmQ2MWNkYTQzMGM2MTgiLCJ0IjoiYTU5YTQxODctZWYzYy00YWVhLWFiMGYtYjRiMjJjOTAyYzMzIiwicyI6Ik56YzBPV1kwWm1VdE1UY3pOQzAwT0RjMkxXSmpOVEl0TXpFMVl6ZzRaalU1TnpneiJ9
+2023-05-01T13:04:50Z INF Using Systemd
+2023-05-01T13:04:52Z INF Linux service for cloudflared installed successfully
+[root@localhost home]# 
+
+
+netstat auf rapsi:
+tcp6       0      0 :::443                  :::*                    LISTEN      907/httpd           
+tcp6       0      0 :::80                   :::*                    LISTEN      907/httpd   
+
+[2a02:8071:5312:3280:e435:38d2:366:acdd]:443 --> das gibt einen Fehler aus
+( Error: An A, AAAA, or CNAME record with that host already exists. For more details, refer to <https://developers.cloudflare.com/dns/manage-dns-records/troubleshooting/records-with-same-name/>.)
+
+erstmal mit IPv6 von Cloudlab testen: [2a02:8071:5312:3280:2e68:9e6f:840e:6f55]:4444 --> klappt auch nicht. 
+Problem versuchen zu lösen mit löschen von cname eintrag in cxloudflare?
+erstmal googlen ob ich was finde  --> bei diesem Video gleicher fehler --> löcshen CNAME-Einträge  (https://www.youtube.com/watch?v=hrwoKO7LMzk&t=468s )
+
+testweise beide AAAA-Records gelöscht (gleiches Schema wie A-Record Einträge nur mit IPv6 adresse) 
+	--> hat nun endlich geklappt mit noTLS-Verify :-) !!!
+ 		anshchließend habe ich das auch für http://[ipv6]:80 und http://www -[ipv6]:80 ausgeführt und alle A-Recotrds in Cloudflare dns gelöscht.
+		---> google-searchconsole hat nun auch endlich die Seite gefunden :-)  
+			Seite müsste auf Index stehen aber crawling dauert nun etwas: Crawling can take anywhere from a few days to a few weeks.
+
+ports auf rapsi, als Hilfe beim nächsten IP-Address Wechsel:
+[root@localhost logs]# netstat -tulpn
+Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      605/sshd            
+tcp        0      0 127.0.0.1:25            0.0.0.0:*               LISTEN      871/master          
+tcp        0      0 127.0.0.1:40587         0.0.0.0:*               LISTEN      1648/cloudflared    
+tcp6       0      0 :::22                   :::*                    LISTEN      605/sshd            
+tcp6       0      0 :::443                  :::*                    LISTEN      907/httpd           
+tcp6       0      0 :::80                   :::*                    LISTEN      907/httpd           
+udp        0      0 127.0.0.1:323           0.0.0.0:*                           267/chronyd         
+udp        0      0 0.0.0.0:68              0.0.0.0:*                           398/dhclient        
+udp6       0      0 ::1:323                 :::*                                267/chronyd         
+udp6       0      0 :::36333                :::*                                1648/cloudflared    
+udp6       0      0 :::55441                :::*                                1648/cloudflared    
+udp6       0      0 :::47259                :::*                                1648/cloudflared    
+udp6       0      0 :::35494                :::*                                1648/cloudflared    
+
+
+next: optimierte Seite hochladen und Sitemap erstellen.
+
+state of the Art dorlan28_04.zip:  
+	- Seite anpassen an an gängige Displaygrößen: für Handys abgedeckt, für tablets auch einigermaßen. Display dürfte passen soweit erstmal!
+	
+
+Bug 1: suchergebnis "Bayern" klappt nicht
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
