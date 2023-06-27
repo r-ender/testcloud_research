@@ -110,4 +110,7 @@ Innerhalb des yocto-layers sind die Ordner die layers. vor einem Build muss man 
 mit bitbake-layers kann man layer hinzufügen oder löschen, geht aber auch manuell.
 
 
+Fragen:
+- Arbeiten Sie agil (SCRUM)? 
+- Auf ihrer Homepage habe ich mir ein paar Produkte angeschaut. Beispielsweise beim Smarttouch-Türöffner schreiben Sie, dass Sie AES nutzen. AES ist ja symmetrisch, nutzen sie auch asymmetrische Kryptographie? 
 
