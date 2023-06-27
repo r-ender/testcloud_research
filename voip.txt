@@ -43,6 +43,14 @@ Vorgehensweise:
 4.) Hosts einstellen (Software installieren, IP-adressen einstellen, usw.)
 
 
+IPv4  (4 BYte, 32Bit):
+192.168.0.1/255.255.255.0 	11111111.11111111.11111111.00000000 	192.168.0.1/24
+
+
+Ipv6:
+Eine IPv6-Adresse besteht aus 128 Bit. 
+Die ersten 64Bit sind Networ Prefix, die restlichen 6Bit INterface Identifier.
+Weil der Interface-Idnetifier von der MAC-adresse abgeleitet wird, kann man noch privacy extensions einführen.
 
 LInux-Tools: 
 tcpdump / wireshark
@@ -94,4 +102,12 @@ SIGGEN_EXCLUDE_SAFE_RECIPE_DEPS += " \
 "
 
 yocto-classes enden mit .bbclasses  und sind Python-Files, die zum Beispiel den cmake-Befehl definieren/umsetzen.
+
+Yocto ist aus Layern aufgebuat, zum Beispiel das unterste layer ist meta-bsp-yocto, meta-oe-embedded usw.
+mit "bitbake -c menuconfig" virtual/kernel kann man einen Kernel customizen, oder auch einen Bootloader.
+Innerhalb des yocto-layers sind die Ordner die layers. vor einem Build muss man die Umgebungsvariablen source, source poky/oe-init....
+
+mit bitbake-layers kann man layer hinzufügen oder löschen, geht aber auch manuell.
+
+
 
