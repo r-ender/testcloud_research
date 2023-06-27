@@ -1,0 +1,97 @@
+VoIP:
+
+klassisches Voice over IP
+Baut auf dem IP Protokoll auf. 
+Man muss zwei Phasen unterscheiden, den Rufaufbau/-abbau und das Gespräch selbst. 
+Beim Rufaufbau/abbau (Call control) nutzt man TCP und darauf SIP/SDP. In dieser Phase ist es wichtig, dass die Daten vollständig ankommen, aus Sicherheitsgründen sollte man 
+das SIP Protokoll noch mit TLS absichern, nennt sich dann SIPS (default-Port 5061).  Das SDP dient zur Aushandlung welche Codecs, Videoafuläsung/Framerate usw. nutzt.
+Beim Ruf selbst ist es nciht so kritisch, falls mal ein Datensatz verloren geht, darum nutzt man UDP und darauf RTP mit Audio-Codecs (G.711) und Video (H.261).
+
+SIP besteht aus dem Senden von Anfragen(requests) und Antworten (responses):
+Die an einer SIP-Session beteiligten Clients und Server senden sich Anfragen (englisch „requests“) und beantworten diese mittels Antwort-Codes (englisch „responses“).
+
+Requests: REGISTER, INVITE, ACK, CANCEL, BYE und OPTIONS. 
+
+Provisional: Vorläufige Statusinformationen, dass der Server weitere Aktionen durchführt und deshalb noch keine endgültige Antwort senden kann.
+Successful: Die Anfrage war erfolgreich.
+Request Failures: Die vorangegangene Nachricht konnte nicht bearbeitet werden.
+Server Failures: Ein an der Übermittlung beteiligter Server konnte eine Nachricht nicht bearbeiten.
+Global Server Failures: Der Server wurde zwar erfolgreich kontaktiert, jedoch kommt die Transaktion nicht zustande.
+
+
+Eine weitere Technik zum NAT-Traversal stellen sogenannte Application Layer Gateways (ALG) dar. Diese sind zwischengeschaltete SIP-Proxys, die – auf einem NAT-Router bzw. einer Firewall installiert – für reibungslosen Transfer der SIP-Signalisierung und -Medienströme sorgen sollen. 
+Bei der Nutzung von IPv6 als Transportprotokoll entfällt in der Regel NAT und damit auch die Notwendigkeit die NAT-typischen Probleme zu umschiffen. Lediglich die Problematik der Firewall bleibt identisch. 
+
+
+Ein Problem von SIP ist, dass es zur Übertragung der Sprachdaten auf RTP zurückgreift. Die dafür verwendeten UDP-Ports werden dynamisch vergeben, was die Verwendung von SIP in Verbindung mit Firewalls oder Network Address Translation (NAT: Heim-Router bei IPv4-Netzen tauscht IP-Adresse von einkommenden Paketen, um sie LAN-intern zu verteilen, spart IPV4-Adressen, bei IPv6 hinfällig ) schwierig macht, da die meisten Firewalls bzw. NAT-Router die dynamisch vergebenen Ports nicht der Signalisierungsverbindung zuordnen können.
+
+Bei der Nutzung von IPv6 als Transportprotokoll entfällt in der Regel NAT und damit auch die Notwendigkeit die NAT-typischen Probleme zu umschiffen. Lediglich die Problematik der Firewall bleibt identisch. 
+
+
+Netzwerk:
+Ich prüfe auch die PKI. PKI ist die die Infrastruktur zur Verteilung von Zertifikaten. Alle, die teilnehmen wollen, müssen erstmal einen CSR an den Root-CA-Server senden. (In großen Netzen gibt es
+auch noch Sub-CA-Server, die eine Stufe unter der Root-CA dann arbeiten). Der CA-Server prüft den CSR und sendet dem neuen teilnehmer dann das Zertifikat zu, mit dem er sich "ausweisen" kann.
+Der Root-CA-Server versendet auch CRLs, also Sperrlisten mit abgelaufenen und/oder manipulierten Zertifikaten, deren Teilnehmer dann ausgesperrt werden. 
+
+Netzwerkerstellung:
+als Tool nutze ich etherplan. Graphisch nicht berauschend aber tut seinen Zweck.
+
+Vorgehensweise:
+1.) Planen der Teilnehmer/Hardware (Handy,Tishctelefon, PC, IPv4 oder schon IPv6 etc.) und der Netzwerktopologie (Bus, Ring, Stern). Bei Stern hat man zB einen zentralen Server, über den alle Leitungen laufen.  Stern /Vor-Nachteil: zentral traffic steuern/Überwachen, Single-Point-of-failure
+2.) Je nach IP-Protokoll IP-adressen aufteilen, Subnetze einreichten, und Präfixe bestimmen.
+3.) Router, Swichtes, Hubs usw. entsprechend der Standorte der Teilnehmer verteilen.
+4.) Hosts einstellen (Software installieren, IP-adressen einstellen, usw.)
+
+
+
+LInux-Tools: 
+tcpdump / wireshark
+ip (früher ifconfig) zeigt Host-IP-Einstellungen an
+wichtig!  netstat zum anzeigen von offenen Ports, Verbindungen usw.
+ebenfalls wichtig  "route -n" für routing table.
+
+Ein WiFi-Gerät unterstützt damit die IEEE 802.11-Norm (auf Schicht 1 des OSI-Modells). Wifi ist nicht sehr stromsparend, eher ZigBee oder Bluetooth LE.
+
+
+Ethernet: .. ist auf Schichten 1 und 2 des Osi-Modells, auf LAyer 2 wird die MAC-adresse Von source und destination angeben, und ob man VLAN nutzt.
+ 
+
+Yocto:  layers sind sozusagen Bündel aus recipes. Es gibt vorgefertigte Layers, wie zB meta-openEmbedded, meta-centos, meta-rapsberrypi usw. 
+	Diese Layers beinhalten bereits alle recipes für standardtools.  Wenn man sich sein eigenens Embedded-System bauen will, kann man das layer auch selbst erstellen und 
+		per recipe alle software-tools einfügen, die man haben möchte. Man kann auch den Weg gehen, fertige Layers zu nehmen und all die tools rauswerfen, die man nciht braucht. 
+		Das ist oftmals weniger fehleranfällig, weil man nichts vergisst zu installieren, sondern Dinge aktiv löschen muss.
+
+	recipes erkennt man an den Dateien mit der endung .bb. Bei langen recipes kann man noch files ausgliedern mit der Endung .bbappend
+	
+	bsp conf:
+	cloud@Cloud-Lab:~/build_srv_image/meta-openembedded/meta-networking$ cat conf/layer.conf 
+# We have a conf and classes directory, add to BBPATH
+BBPATH .= ":${LAYERDIR}"
+
+# We have a packages directory, add to BBFILES
+BBFILES += "${LAYERDIR}/recipes-*/*/*.bb \
+            ${LAYERDIR}/recipes-*/*/*.bbappend"
+
+BBFILE_COLLECTIONS += "networking-layer"
+BBFILE_PATTERN_networking-layer := "^${LAYERDIR}/"
+BBFILE_PRIORITY_networking-layer = "5"
+
+# This should only be incremented on significant changes that will
+# cause compatibility issues with other layers
+LAYERVERSION_networking-layer = "1"
+
+LAYERDEPENDS_networking-layer = "core"
+LAYERDEPENDS_networking-layer += "openembedded-layer"
+LAYERDEPENDS_networking-layer += "meta-python"
+
+LAYERSERIES_COMPAT_networking-layer = "thud warrior zeus dunfell"
+
+LICENSE_PATH += "${LAYERDIR}/licenses"
+
+SIGGEN_EXCLUDE_SAFE_RECIPE_DEPS += " \
+  wireguard-tools->wireguard-module \
+  wireless-regdb->crda \
+"
+
+yocto-classes enden mit .bbclasses  und sind Python-Files, die zum Beispiel den cmake-Befehl definieren/umsetzen.
+
