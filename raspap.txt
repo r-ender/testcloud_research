@@ -1,0 +1,52 @@
+Create RaspberryPi as router:
+
+download latests RaspberryOS Image:
+https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2023-05-03/2023-05-03-raspios-bullseye-arm64-lite.img.xz
+
+extract
+cloud@Cloud-Lab:~/smartwless_raspap$ unxz 2023-05-03-raspios-bullseye-arm64-lite.img.xz
+
+FLASHEN
+check SD-card:
+
+cloud@Cloud-Lab:~/smartwless_raspap$ df -h /dev/mmcblk0p1
+Filesystem      Size  Used Avail Use% Mounted on
+udev            7,7G     0  7,7G   0% /dev
+
+
+cloud@Cloud-Lab:/$ sudo dd if=~/smartwless_raspap/2023-05-03-raspios-bullseye-arm64-lite.img of=/dev/mmcblk0 bs=4M conv=fsync 
+cloud@Cloud-Lab:/$ sync
+
+SSH-Connection:
+cloud@Cloud-Lab:/$ sudo mount /dev/mmcblk0p2 /tmp
+cloud@Cloud-Lab:/$ sudo mount /dev/mmcblk0p1 /tmp/boot
+
+cloud@Cloud-Lab:/$ cat /tmp/etc/dhcpcd.conf
+
+(von mir geändert:)
+interface eth0
+static ip_address=192.168.0.3/24
+static ip6_address=fd51:42f8:caae:d92e::ff/64
+static routers=192.168.0.3
+static domain_name_servers=192.168.0.3 8.8.8.8 fd51:42f8:caae:d92e::1
+
+( --> besser auf vorhandenen IP-Bereich von smartwireless-host bringen, mein Heim-Netzwerk-Wlan-IP:  192.168.0.115/24   ?  --> MÜsste auch so passen, da gleicher Addressbereich !)
+
+nter /boot leere ssh-datei ablegen um shh zu enablen:
+cloud@Cloud-Lab:/tmp/boot$ sudo touch ssh
+
+( der ssh-server vom Raspi unter SSH-server war diasbles und ich musste ihn nach dem ersten booten mit rapsi-config enablen!. )
+
+Das SSH verbinden könnte klappen, ich muss allerdings vorher auch einen USer anlegen aufgrund neuer Sicherheitsfeatures:
+In essence, the default pi user no longer exists, so you have to create it and set its password using either the official Imager tool or by creating a userconf file in the boot partition of your microSD card, which should contain a single line of text: username:hashed-password, replacing username with the name of the user you want (e.g., pi) and hashed-password with the hash of the password you want.
+
+(create passwd hash md5crypt ---- pw: wireless)
+cloud@Cloud-Lab:/tmp$ mkpasswd -5 
+Password: 
+$1$dPup9RJg$0t0IUFR8o/ldlJoBYl1aG.
+
+---> userconf.txt:roland:$1$dPup9RJg$0t0IUFR8o/ldlJoBYl1aG.
+
+
+---> SSH login klappt :-)
+--> aber keine Internet-verbindung
